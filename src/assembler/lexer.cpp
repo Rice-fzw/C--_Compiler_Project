@@ -5,6 +5,8 @@
 #include <iomanip>
 #include <fstream>
 #include <sstream>
+#include <stdexcept>
+#include <filesystem>
 using namespace std;
 
 enum class TokenType {
@@ -48,18 +50,22 @@ private:
 
 public:
     MipsLexer() {
-        // 初始化token patterns
-        tokenPatterns = {
-            {TokenType::COMMENT, regex("^(#.*$|/\\*[\\s\\S]*?\\*/)")},  // 单行注释和多行注释
-            {TokenType::DIRECTIVE, regex("^\\.[a-zA-Z]+")},  // Directives
-            {TokenType::KEYWORD, regex("^(add|sub|lw|sw|beq|j)")},
-            {TokenType::REGISTER, regex("^\\$[a-zA-Z0-9]+")},
-            {TokenType::INTEGER, regex("^-?\\d+")},
-            {TokenType::LABEL, regex("^[a-zA-Z_][a-zA-Z0-9_]*:")},
-            {TokenType::COMMA, regex("^,")},
-            {TokenType::IDENTIFIER, regex("^[a-zA-Z_][a-zA-Z0-9_]*")},
-            {TokenType::WHITESPACE, regex("^\\s+")}
-        };
+        try {
+            tokenPatterns = {
+                {TokenType::DIRECTIVE, regex("^\\.[a-zA-Z]+")},
+                {TokenType::KEYWORD, regex("^(add|sub|lw|sw|beq|j)")},
+                {TokenType::REGISTER, regex("^\\$[a-zA-Z0-9]+")},
+                {TokenType::INTEGER, regex("^-?\\d+")},
+                {TokenType::LABEL, regex("^[a-zA-Z_][a-zA-Z0-9_]*:")},
+                {TokenType::COMMA, regex("^,")},
+                {TokenType::IDENTIFIER, regex("^[a-zA-Z_][a-zA-Z0-9_]*")},
+                {TokenType::WHITESPACE, regex("^\\s+")},
+                {TokenType::COMMENT, regex("^(#.*$|/\\*[\\s\\S]*?\\*/)")}
+            };
+        } catch (const regex_error& e) {
+            cerr << "Regex error: " << e.what() << endl;
+            throw;
+        }
     }
 
     vector<Token> tokenizeFile(const string& filename) {
@@ -77,36 +83,61 @@ public:
         return tokens;
     }
 
-    vector<Token> tokenizeContent(const string& content) {
+    vector<Token> tokenizeContent(const string& input) {
         vector<Token> tokens;
-        string remainingInput = content;
+        string remainingInput = input;
         int lineNumber = 1;
+        int tokenCount = 0;
 
-        while (!remainingInput.empty()) {
-            bool matched = false;
-            for (const auto& pattern : tokenPatterns) {
-                smatch match;
-                if (regex_search(remainingInput, match, pattern.second, regex_constants::match_continuous)) {
-                    if (pattern.first != TokenType::WHITESPACE) {
-                        tokens.push_back({pattern.first, match.str(), lineNumber});
+        cout << "Starting tokenization process..." << endl;
+
+        try {
+            while (!remainingInput.empty()) {
+                bool matched = false;
+                for (const auto& pattern : tokenPatterns) {
+                    smatch match;
+                    if (regex_search(remainingInput, match, pattern.second, regex_constants::match_continuous)) {
+                        if (pattern.first != TokenType::WHITESPACE) {
+                            tokens.push_back({pattern.first, match.str(), lineNumber});
+                            tokenCount++;
+                            cout << "Token " << tokenCount << " found: Type=" << tokenTypeToString(pattern.first) 
+                                 << ", Value=" << match.str() << ", Line=" << lineNumber << endl;
+                        }
+
+                        string matchedString = match.str();
+                        size_t newlines = count(matchedString.begin(), matchedString.end(), '\n');
+                        lineNumber += newlines;
+
+                        if(newlines == 0 && pattern.first == TokenType::DIRECTIVE){
+                            lineNumber++;
+                        }
+                        remainingInput = match.suffix().str();
+                        matched = true;
+                        break;
                     }
-                    // 更新行号
-                    lineNumber += count(match.str().begin(), match.str().end(), '\n');
-                    remainingInput = match.suffix();
-                    matched = true;
-                    break;
+                }
+
+                if (!matched) {
+                    cout << "Unmatched character at position " << (input.length() - remainingInput.length()) 
+                         << ": '" << remainingInput[0] << "'" << endl;
+                    tokens.push_back({TokenType::UNKNOWN, string(1, remainingInput[0]), lineNumber});
+                    tokenCount++;
+                    remainingInput = remainingInput.substr(1);
+                }
+
+                if (tokenCount % 10 == 0) {
+                    cout << tokenCount << " tokens processed..." << endl;
                 }
             }
-
-            if (!matched) {
-                // 处理未知字符
-                tokens.push_back({TokenType::UNKNOWN, string(1, remainingInput[0]), lineNumber});
-                remainingInput = remainingInput.substr(1);
-            }
+        } catch (const exception& e) {
+            cerr << "Exception in tokenizeContent: " << e.what() << endl;
+            throw;
         }
 
+        cout << "Tokenization complete. Total tokens: " << tokenCount << endl;
         return tokens;
     }
+
 
     void printTokens(const vector<Token>& tokens) const {
         cout << left << setw(15) << "Token Type" 
@@ -125,15 +156,33 @@ public:
 };
 
 int main() {
-    MipsLexer lexer;
-    string filename = "mips_test.txt";  // 假设MIPS代码保存在这个文件中
-
     try {
-        auto tokens = lexer.tokenizeFile(filename);
-        cout << "文件 '" << filename << "' 的词法分析结果：" << endl << endl;
+        MipsLexer lexer;
+        string filename = "mips_test.txt";
+        cout << filesystem::current_path() << endl;
+        cout << "Begin to tokenize" << endl;
+
+        cout << "Attempting to open file: " << filename << endl;
+        ifstream file(filename);
+        if (!file.is_open()) {
+            throw runtime_error("Unable to open file " + filename);
+        }
+        cout << "File opened successfully" << endl;
+
+        string content((istreambuf_iterator<char>(file)), istreambuf_iterator<char>());
+        file.close();
+        cout << "File content read. Content length: " << content.length() << endl;
+
+        cout << "Tokenizing content..." << endl;
+        auto tokens = lexer.tokenizeContent(content);
+        cout << "Tokenization complete. Number of tokens: " << tokens.size() << endl;
+
+        cout << "\nToken analysis results for file '" << filename << "':" << endl;
         lexer.printTokens(tokens);
+
+        cout << "Program completed successfully" << endl;
     } catch (const exception& e) {
-        cerr << "错误: " << e.what() << endl;
+        cerr << "Fatal error: " << e.what() << endl;
         return 1;
     }
 
