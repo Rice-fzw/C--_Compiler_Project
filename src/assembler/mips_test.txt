@@ -1,0 +1,2 @@
+.data
+str:  .asciiz "\nHello World!\n"
