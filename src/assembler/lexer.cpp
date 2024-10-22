@@ -6,7 +6,6 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
-#include <filesystem>
 using namespace std;
 
 enum class TokenType {
@@ -19,7 +18,8 @@ enum class TokenType {
     WHITESPACE,
     COMMENT,
     DIRECTIVE,
-    UNKNOWN
+    LINEBREAK,
+    UNKNOWN,
 };
 
 struct Token {
@@ -43,6 +43,7 @@ private:
             case TokenType::WHITESPACE: return "WHITESPACE";
             case TokenType::COMMENT: return "COMMENT";
             case TokenType::DIRECTIVE: return "DIRECTIVE";
+            case TokenType::LINEBREAK: return "LINEBREAK";
             case TokenType::UNKNOWN: return "UNKNOWN";
             default: return "UNDEFINED";
         }
@@ -59,8 +60,9 @@ public:
                 {TokenType::LABEL, regex("^[a-zA-Z_][a-zA-Z0-9_]*:")},
                 {TokenType::COMMA, regex("^,")},
                 {TokenType::IDENTIFIER, regex("^[a-zA-Z_][a-zA-Z0-9_]*")},
-                {TokenType::WHITESPACE, regex("^\\s+")},
-                {TokenType::COMMENT, regex("^(#.*$|/\\*[\\s\\S]*?\\*/)")}
+                {TokenType::WHITESPACE, regex("^[\\s&&[^\n]]+")},
+                {TokenType::LINEBREAK, regex("^\\n")},
+                {TokenType::COMMENT, regex("^\\#[a-zA-Z0-9]+")}
             };
         } catch (const regex_error& e) {
             cerr << "Regex error: " << e.what() << endl;
@@ -108,7 +110,7 @@ public:
                         size_t newlines = count(matchedString.begin(), matchedString.end(), '\n');
                         lineNumber += newlines;
 
-                        if(newlines == 0 && pattern.first == TokenType::DIRECTIVE){
+                        if(newlines == 0 && pattern.first == TokenType::LINEBREAK){
                             lineNumber++;
                         }
                         remainingInput = match.suffix().str();
@@ -159,7 +161,6 @@ int main() {
     try {
         MipsLexer lexer;
         string filename = "mips_test.txt";
-        cout << filesystem::current_path() << endl;
         cout << "Begin to tokenize" << endl;
 
         cout << "Attempting to open file: " << filename << endl;
@@ -170,6 +171,7 @@ int main() {
         cout << "File opened successfully" << endl;
 
         string content((istreambuf_iterator<char>(file)), istreambuf_iterator<char>());
+        cout << content << endl;
         file.close();
         cout << "File content read. Content length: " << content.length() << endl;
 
