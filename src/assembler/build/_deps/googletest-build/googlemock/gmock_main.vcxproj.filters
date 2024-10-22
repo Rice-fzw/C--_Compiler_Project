@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="E:\CUHKSZ\2024 Fall\CSC3002\CSC3002-Project\src\assembler\build\_deps\googletest-src\googletest\src\gtest-all.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="E:\CUHKSZ\2024 Fall\CSC3002\CSC3002-Project\src\assembler\build\_deps\googletest-src\googlemock\src\gmock-all.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="E:\CUHKSZ\2024 Fall\CSC3002\CSC3002-Project\src\assembler\build\_deps\googletest-src\googlemock\src\gmock_main.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="E:\CUHKSZ\2024 Fall\CSC3002\CSC3002-Project\src\assembler\build\_deps\googletest-src\googlemock\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{3C208C9D-ECA4-3228-A06C-BB52E5052B53}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

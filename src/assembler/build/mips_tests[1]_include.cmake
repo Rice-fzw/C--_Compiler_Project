@@ -1,0 +1,5 @@
+if(EXISTS "E:/CUHKSZ/2024 Fall/CSC3002/CSC3002-Project/src/assembler/build/mips_tests[1]_tests.cmake")
+  include("E:/CUHKSZ/2024 Fall/CSC3002/CSC3002-Project/src/assembler/build/mips_tests[1]_tests.cmake")
+else()
+  add_test(mips_tests_NOT_BUILT mips_tests_NOT_BUILT)
+endif()

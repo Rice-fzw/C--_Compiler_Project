@@ -1,0 +1,10 @@
+^E:\CUHKSZ\2024 FALL\CSC3002\CSC3002-PROJECT\SRC\ASSEMBLER\BUILD\_DEPS\GOOGLETEST-SUBBUILD\CMAKELISTS.TXT
+setlocal
+"E:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" "-SE:/CUHKSZ/2024 Fall/CSC3002/CSC3002-Project/src/assembler/build/_deps/googletest-subbuild" "-BE:/CUHKSZ/2024 Fall/CSC3002/CSC3002-Project/src/assembler/build/_deps/googletest-subbuild" --check-stamp-file "E:/CUHKSZ/2024 Fall/CSC3002/CSC3002-Project/src/assembler/build/_deps/googletest-subbuild/CMakeFiles/generate.stamp"
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

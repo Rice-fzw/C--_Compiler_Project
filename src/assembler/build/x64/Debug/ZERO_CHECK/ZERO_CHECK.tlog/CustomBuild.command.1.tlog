@@ -1,0 +1,10 @@
+^E:\CUHKSZ\2024 FALL\CSC3002\CSC3002-PROJECT\SRC\ASSEMBLER\BUILD\CMAKEFILES\C4A2AB34F2FE03F07851ADF39085F10E\GENERATE.STAMP.RULE
+setlocal
+"E:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" "-SE:/CUHKSZ/2024 Fall/CSC3002/CSC3002-Project/src/assembler" "-BE:/CUHKSZ/2024 Fall/CSC3002/CSC3002-Project/src/assembler/build" --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file "E:/CUHKSZ/2024 Fall/CSC3002/CSC3002-Project/src/assembler/build/MipsAssembler.sln"
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

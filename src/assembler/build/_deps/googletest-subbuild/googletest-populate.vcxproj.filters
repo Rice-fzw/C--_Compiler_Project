@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="E:\CUHKSZ\2024 Fall\CSC3002\CSC3002-Project\src\assembler\build\_deps\googletest-subbuild\CMakeFiles\bc843212efa9b147db57ecaeb6cbbee5\googletest-populate-mkdir.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="E:\CUHKSZ\2024 Fall\CSC3002\CSC3002-Project\src\assembler\build\_deps\googletest-subbuild\CMakeFiles\bc843212efa9b147db57ecaeb6cbbee5\googletest-populate-download.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="E:\CUHKSZ\2024 Fall\CSC3002\CSC3002-Project\src\assembler\build\_deps\googletest-subbuild\CMakeFiles\bc843212efa9b147db57ecaeb6cbbee5\googletest-populate-update.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="E:\CUHKSZ\2024 Fall\CSC3002\CSC3002-Project\src\assembler\build\_deps\googletest-subbuild\CMakeFiles\bc843212efa9b147db57ecaeb6cbbee5\googletest-populate-patch.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="E:\CUHKSZ\2024 Fall\CSC3002\CSC3002-Project\src\assembler\build\_deps\googletest-subbuild\CMakeFiles\bc843212efa9b147db57ecaeb6cbbee5\googletest-populate-configure.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="E:\CUHKSZ\2024 Fall\CSC3002\CSC3002-Project\src\assembler\build\_deps\googletest-subbuild\CMakeFiles\bc843212efa9b147db57ecaeb6cbbee5\googletest-populate-build.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="E:\CUHKSZ\2024 Fall\CSC3002\CSC3002-Project\src\assembler\build\_deps\googletest-subbuild\CMakeFiles\bc843212efa9b147db57ecaeb6cbbee5\googletest-populate-install.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="E:\CUHKSZ\2024 Fall\CSC3002\CSC3002-Project\src\assembler\build\_deps\googletest-subbuild\CMakeFiles\bc843212efa9b147db57ecaeb6cbbee5\googletest-populate-test.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="E:\CUHKSZ\2024 Fall\CSC3002\CSC3002-Project\src\assembler\build\_deps\googletest-subbuild\CMakeFiles\2e8b60bc5cb157c6d2702ca32b000069\googletest-populate-complete.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="E:\CUHKSZ\2024 Fall\CSC3002\CSC3002-Project\src\assembler\build\_deps\googletest-subbuild\CMakeFiles\e30f06590f3a8f9cdc0a7e58b0513c2f\googletest-populate.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="E:\CUHKSZ\2024 Fall\CSC3002\CSC3002-Project\src\assembler\build\_deps\googletest-subbuild\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="E:\CUHKSZ\2024 Fall\CSC3002\CSC3002-Project\src\assembler\build\_deps\googletest-subbuild\CMakeFiles\googletest-populate" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{9DD25678-7497-39C6-8484-3B14D1E7AF30}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
