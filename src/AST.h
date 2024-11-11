@@ -149,7 +149,7 @@ class AddExpAST : public BaseAST {
   : op(""), left_AST(std::move(left)), right_AST(nullptr) {}
 
   AddExpAST(std::string op, std::unique_ptr<BaseAST> left, std::unique_ptr<BaseAST> right)
-    : op(op), left_AST(std::move(left)), right_AST(std::move(right)) {}
+  : op(op), left_AST(std::move(left)), right_AST(std::move(right)) {}
 
   void Dump(int level = 0) const override {
     indent(level);
@@ -185,7 +185,7 @@ class MulExpAST : public BaseAST {
   : op(""), left_AST(std::move(left)), right_AST(nullptr) {}
 
   MulExpAST(std::string op, std::unique_ptr<BaseAST> left, std::unique_ptr<BaseAST> right)
-    : op(op), left_AST(std::move(left)), right_AST(std::move(right)) {}
+  : op(op), left_AST(std::move(left)), right_AST(std::move(right)) {}
 
   void Dump(int level = 0) const override {
     indent(level);
