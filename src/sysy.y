@@ -32,8 +32,8 @@ using namespace std;
 %token <int_val> INT_CONST
 
 %type <ast_val> FuncDef FuncType Block Stmt
-%type <ast_val> Exp UnaryExp PrimaryExp
-%type <str_val> UnaryOp
+%type <ast_val> Exp UnaryExp PrimaryExp MulExp AddExp
+%type <str_val> UnaryOp Mulop Addop
 %type <int_val> Number
 
 %%
@@ -88,7 +88,7 @@ Number
   ;
 
 Exp
-  : UnaryExp {
+  : AddExp {
     $$ = $1;
   }
   ;
@@ -107,7 +107,7 @@ UnaryExp
 
 PrimaryExp
 : '(' Exp ')' {
-  $$ = new PrimaryExpAST(unique_ptr<BaseAST> ($2));
+  $$ = new PrimaryExpAST(unique_ptr<BaseAST>($2));
 }
 | Number {
   $$ = new PrimaryExpAST($1);
@@ -123,6 +123,46 @@ UnaryOp
   | '!' {
     $$ = new string("!");
   }
+
+AddExp
+  : MulExp {
+    $$ = new AddExpAST(unique_ptr<BaseAST>($1));
+  }
+  | AddExp Addop MulExp {
+    $$ = new AddExpAST(*$2, unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+  }
+  ;
+
+MulExp
+  : UnaryExp {
+    $$ = new MulExpAST(unique_ptr<BaseAST>($1));
+  }
+  | MulExp Mulop UnaryExp {
+    $$ = new MulExpAST(*$2, unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+  }
+  ;
+
+Addop
+  : '+' {
+    $$ = new string("+");
+  }
+  | '-' {
+    $$ = new string("-");
+  }
+  ;
+
+Mulop
+  : '*' {
+    $$ = new string("*");
+  }
+  | '/' {
+    $$ = new string("/");
+  }
+  | '%' {
+    $$ = new string("%");
+  }
+  ;
+
 %%
 
 void yyerror(unique_ptr<BaseAST> &ast, const char *s) {
