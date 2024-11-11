@@ -1,3 +1,0 @@
-E:/CUHKSZ/2024 Fall/CSC3002/CSC3002-Project/src/assembler/build/_deps/googletest-subbuild/CMakeFiles/googletest-populate.dir
-E:/CUHKSZ/2024 Fall/CSC3002/CSC3002-Project/src/assembler/build/_deps/googletest-subbuild/CMakeFiles/edit_cache.dir
-E:/CUHKSZ/2024 Fall/CSC3002/CSC3002-Project/src/assembler/build/_deps/googletest-subbuild/CMakeFiles/rebuild_cache.dir
