@@ -22,17 +22,18 @@ using namespace std;
 %parse-param { std::unique_ptr<BaseAST> &ast }
 
 %union {
-  std::string *str_val;
+  std::string *str_val; 
   int int_val;
   BaseAST *ast_val;
 }
 
-%token INT RETURN
+%token INT RETURN LE GE EQ NE LAND LOR
 %token <str_val> IDENT
 %token <int_val> INT_CONST
 
 %type <ast_val> FuncDef FuncType Block Stmt
 %type <ast_val> Exp UnaryExp PrimaryExp MulExp AddExp
+%type <ast_val> RelExp EqExp LAndExp LOrExp
 %type <str_val> UnaryOp Mulop Addop
 %type <int_val> Number
 
@@ -88,7 +89,7 @@ Number
   ;
 
 Exp
-  : AddExp {
+  : LOrExp {
     $$ = $1;
   }
   ;
@@ -163,6 +164,53 @@ Mulop
   }
   ;
 
+EqExp
+  : RelExp {
+    $$ = new EqExpAST(unique_ptr<BaseAST>($1));
+  }
+  | EqExp EQ RelExp {
+    $$ = new EqExpAST("==", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+  }
+  | EqExp NE RelExp {
+    $$ = new EqExpAST("!=", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+  }
+  ;
+
+RelExp
+  : AddExp {
+    $$ = new RelExpAST(unique_ptr<BaseAST>($1));
+  }
+  | RelExp '<' AddExp {
+    $$ = new RelExpAST("<", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+  }
+  | RelExp '>' AddExp {
+    $$ = new RelExpAST(">", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+  }
+  | RelExp LE AddExp {
+    $$ = new RelExpAST("<=", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+  }
+  | RelExp GE AddExp {
+    $$ = new RelExpAST(">=", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+  }
+  ;
+
+LOrExp
+  : LAndExp {
+    $$ = new LOrExpAST(unique_ptr<BaseAST>($1));
+  }
+  | LOrExp LOR LAndExp {
+    $$ = new LOrExpAST(unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+  }
+  ;
+
+LAndExp
+  : EqExp {
+    $$ = new LAndExpAST(unique_ptr<BaseAST>($1));
+  }
+  | LAndExp LAND EqExp {
+    $$ = new LAndExpAST(unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+  }
+  ;
 %%
 
 void yyerror(unique_ptr<BaseAST> &ast, const char *s) {

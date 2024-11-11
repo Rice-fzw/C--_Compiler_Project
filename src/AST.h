@@ -124,6 +124,7 @@ class PrimaryExpAST : public BaseAST {
   }
 };
 
+// UnaryExp 处理 +, -, !
 class UnaryExpAST : public BaseAST {
  public:
   std::string op;
@@ -139,6 +140,8 @@ class UnaryExpAST : public BaseAST {
     std::cout << "}\n";
   }
 };
+
+// AddExp 处理 +, -
 class AddExpAST : public BaseAST {
  public:
   std::string op;
@@ -175,6 +178,7 @@ class AddExpAST : public BaseAST {
   }
 };
 
+// MulExp 处理 *, /, %
 class MulExpAST : public BaseAST {
  public:
   std::string op;
@@ -200,6 +204,152 @@ class MulExpAST : public BaseAST {
       std::cout << "}\n";
       indent(level + 1);
       std::cout << "right_AST: {\n";
+      right_AST->Dump(level + 2);
+      indent(level + 1);
+      std::cout << "}\n";
+    } else {
+      left_AST->Dump(level + 1);
+    }
+    indent(level);
+    std::cout << "}\n";
+  }
+};
+
+// RelExpAST  处理 <, >, <=, >=
+class RelExpAST : public BaseAST {
+ public:
+  std::string op;
+  std::unique_ptr<BaseAST> left_AST;
+  std::unique_ptr<BaseAST> right_AST;
+  
+  RelExpAST(std::unique_ptr<BaseAST> left)
+    : op(""), left_AST(std::move(left)), right_AST(nullptr) {}
+
+  RelExpAST(std::string op, std::unique_ptr<BaseAST> left, std::unique_ptr<BaseAST> right)
+    : op(op), left_AST(std::move(left)), right_AST(std::move(right)) {}
+
+  void Dump(int level = 0) const override {
+    indent(level);
+    std::cout << "RelExp {\n";
+    if (right_AST) {
+      indent(level + 1);
+      std::cout << "op: " << op << "\n";
+      indent(level + 1);
+      std::cout << "left: {\n";
+      left_AST->Dump(level + 2);
+      indent(level + 1);
+      std::cout << "}\n";
+      indent(level + 1);
+      std::cout << "right: {\n";
+      right_AST->Dump(level + 2);
+      indent(level + 1);
+      std::cout << "}\n";
+    } else {
+      left_AST->Dump(level + 1);
+    }
+    indent(level);
+    std::cout << "}\n";
+  }
+};
+
+// EqExpAST 处理 ==, !=
+class EqExpAST : public BaseAST {
+ public:
+  std::string op;
+  std::unique_ptr<BaseAST> left_AST;
+  std::unique_ptr<BaseAST> right_AST;
+  
+  EqExpAST(std::unique_ptr<BaseAST> left)
+    : op(""), left_AST(std::move(left)), right_AST(nullptr) {}
+
+  EqExpAST(std::string op, std::unique_ptr<BaseAST> left, std::unique_ptr<BaseAST> right)
+    : op(op), left_AST(std::move(left)), right_AST(std::move(right)) {}
+
+  void Dump(int level = 0) const override {
+    indent(level);
+    std::cout << "EqExp {\n";
+    if (right_AST) {
+      indent(level + 1);
+      std::cout << "op: " << op << "\n";
+      indent(level + 1);
+      std::cout << "left: {\n";
+      left_AST->Dump(level + 2);
+      indent(level + 1);
+      std::cout << "}\n";
+      indent(level + 1);
+      std::cout << "right: {\n";
+      right_AST->Dump(level + 2);
+      indent(level + 1);
+      std::cout << "}\n";
+    } else {
+      left_AST->Dump(level + 1);
+    }
+    indent(level);
+    std::cout << "}\n";
+  }
+};
+
+// LAndExpAST 处理 &&
+class LAndExpAST : public BaseAST {
+ public:
+  std::unique_ptr<BaseAST> left_AST;
+  std::unique_ptr<BaseAST> right_AST;
+  
+  LAndExpAST(std::unique_ptr<BaseAST> left)
+    : left_AST(std::move(left)), right_AST(nullptr) {}
+
+  LAndExpAST(std::unique_ptr<BaseAST> left, std::unique_ptr<BaseAST> right)
+    : left_AST(std::move(left)), right_AST(std::move(right)) {}
+
+  void Dump(int level = 0) const override {
+    indent(level);
+    std::cout << "LAndExp {\n";
+    if (right_AST) {
+      indent(level + 1);
+      std::cout << "op: &&\n";
+      indent(level + 1);
+      std::cout << "left: {\n";
+      left_AST->Dump(level + 2);
+      indent(level + 1);
+      std::cout << "}\n";
+      indent(level + 1);
+      std::cout << "right: {\n";
+      right_AST->Dump(level + 2);
+      indent(level + 1);
+      std::cout << "}\n";
+    } else {
+      left_AST->Dump(level + 1);
+    }
+    indent(level);
+    std::cout << "}\n";
+  }
+};
+
+// LOrExpAST 处理 ||
+class LOrExpAST : public BaseAST {
+ public:
+  std::unique_ptr<BaseAST> left_AST;
+  std::unique_ptr<BaseAST> right_AST;
+  
+  LOrExpAST(std::unique_ptr<BaseAST> left)
+    : left_AST(std::move(left)), right_AST(nullptr) {}
+
+  LOrExpAST(std::unique_ptr<BaseAST> left, std::unique_ptr<BaseAST> right)
+    : left_AST(std::move(left)), right_AST(std::move(right)) {}
+
+  void Dump(int level = 0) const override {
+    indent(level);
+    std::cout << "LOrExp {\n";
+    if (right_AST) {
+      indent(level + 1);
+      std::cout << "op: ||\n";
+      indent(level + 1);
+      std::cout << "left: {\n";
+      left_AST->Dump(level + 2);
+      indent(level + 1);
+      std::cout << "}\n";
+      indent(level + 1);
+      std::cout << "right: {\n";
       right_AST->Dump(level + 2);
       indent(level + 1);
       std::cout << "}\n";
