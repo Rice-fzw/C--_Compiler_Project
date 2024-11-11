@@ -27,7 +27,21 @@ using namespace std;
   BaseAST *ast_val;
 }
 
-%token INT RETURN LE GE EQ NE LAND LOR
+//关键字Token
+%token INT RETURN 
+//比较运算符Token
+%token LE GE EQ NE
+//逻辑运算符Token
+%token LAND LOR
+//优先级
+%left LOR           // 最低优先级
+%left LAND
+%left EQ NE
+%left '<' '>' LE GE
+%left '+' '-'
+%left '*' '/' '%'
+%right '!'          // 最高优先级
+
 %token <str_val> IDENT
 %token <int_val> INT_CONST
 
@@ -94,6 +108,72 @@ Exp
   }
   ;
 
+LOrExp
+  : LAndExp {
+    $$ = new LOrExpAST(unique_ptr<BaseAST>($1));
+  }
+  | LOrExp LOR LAndExp {
+    $$ = new LOrExpAST("||", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+  }
+  ;
+
+LAndExp
+  : EqExp {
+    $$ = new LAndExpAST(unique_ptr<BaseAST>($1));
+  }
+  | LAndExp LAND EqExp {
+    $$ = new LAndExpAST("&&", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+  }
+  ;
+  
+EqExp
+  : RelExp {
+    $$ = new EqExpAST(unique_ptr<BaseAST>($1));
+  }
+  | EqExp EQ RelExp {
+    $$ = new EqExpAST("==", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+  }
+  | EqExp NE RelExp {
+    $$ = new EqExpAST("!=", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+  }
+  ;
+
+RelExp
+  : AddExp {
+    $$ = new RelExpAST(unique_ptr<BaseAST>($1));
+  }
+  | RelExp '<' AddExp {
+    $$ = new RelExpAST("<", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+  }
+  | RelExp '>' AddExp {
+    $$ = new RelExpAST(">", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+  }
+  | RelExp LE AddExp {
+    $$ = new RelExpAST("<=", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+  }
+  | RelExp GE AddExp {
+    $$ = new RelExpAST(">=", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+  }
+  ;
+
+AddExp
+  : MulExp {
+    $$ = new AddExpAST(unique_ptr<BaseAST>($1));
+  }
+  | AddExp Addop MulExp {
+    $$ = new AddExpAST(*$2, unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+  }
+  ;
+
+MulExp
+  : UnaryExp {
+    $$ = new MulExpAST(unique_ptr<BaseAST>($1));
+  }
+  | MulExp Mulop UnaryExp {
+    $$ = new MulExpAST(*$2, unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+  }
+  ;
+
 UnaryExp
   : PrimaryExp {
     $$ = $1;
@@ -125,24 +205,6 @@ UnaryOp
     $$ = new string("!");
   }
 
-AddExp
-  : MulExp {
-    $$ = new AddExpAST(unique_ptr<BaseAST>($1));
-  }
-  | AddExp Addop MulExp {
-    $$ = new AddExpAST(*$2, unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
-  }
-  ;
-
-MulExp
-  : UnaryExp {
-    $$ = new MulExpAST(unique_ptr<BaseAST>($1));
-  }
-  | MulExp Mulop UnaryExp {
-    $$ = new MulExpAST(*$2, unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
-  }
-  ;
-
 Addop
   : '+' {
     $$ = new string("+");
@@ -161,54 +223,6 @@ Mulop
   }
   | '%' {
     $$ = new string("%");
-  }
-  ;
-
-EqExp
-  : RelExp {
-    $$ = new EqExpAST(unique_ptr<BaseAST>($1));
-  }
-  | EqExp EQ RelExp {
-    $$ = new EqExpAST("==", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
-  }
-  | EqExp NE RelExp {
-    $$ = new EqExpAST("!=", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
-  }
-  ;
-
-RelExp
-  : AddExp {
-    $$ = new RelExpAST(unique_ptr<BaseAST>($1));
-  }
-  | RelExp '<' AddExp {
-    $$ = new RelExpAST("<", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
-  }
-  | RelExp '>' AddExp {
-    $$ = new RelExpAST(">", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
-  }
-  | RelExp LE AddExp {
-    $$ = new RelExpAST("<=", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
-  }
-  | RelExp GE AddExp {
-    $$ = new RelExpAST(">=", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
-  }
-  ;
-
-LOrExp
-  : LAndExp {
-    $$ = new LOrExpAST(unique_ptr<BaseAST>($1));
-  }
-  | LOrExp LOR LAndExp {
-    $$ = new LOrExpAST(unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
-  }
-  ;
-
-LAndExp
-  : EqExp {
-    $$ = new LAndExpAST(unique_ptr<BaseAST>($1));
-  }
-  | LAndExp LAND EqExp {
-    $$ = new LAndExpAST(unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
   }
   ;
 %%
