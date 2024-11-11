@@ -31,8 +31,9 @@ using namespace std;
 %token <str_val> IDENT
 %token <int_val> INT_CONST
 
-
 %type <ast_val> FuncDef FuncType Block Stmt
+%type <ast_val> Exp UnaryExp PrimaryExp
+%type <str_val> UnaryOp
 %type <int_val> Number
 
 %%
@@ -72,10 +73,10 @@ Block
   ;
 
 Stmt
-  : RETURN Number ';' {
+  : RETURN Exp ';' {
     auto ast = new StmtAST();
     ast->stmt_type = "return";
-    ast->number =$2;
+    ast->exp = unique_ptr<BaseAST>($2);
     $$ = ast;
   }
   ;
@@ -86,6 +87,42 @@ Number
   }
   ;
 
+Exp
+  : UnaryExp {
+    $$ = $1;
+  }
+  ;
+
+UnaryExp
+  : PrimaryExp {
+    $$ = $1;
+  }
+  | UnaryOp UnaryExp {
+    auto ast = new UnaryExpAST();
+    ast->op = *unique_ptr<string>($1);
+    ast->exp = unique_ptr<BaseAST>($2);
+    $$ = ast;
+  }
+  ;
+
+PrimaryExp
+: '(' Exp ')' {
+  $$ = new PrimaryExpAST(unique_ptr<BaseAST> ($2));
+}
+| Number {
+  $$ = new PrimaryExpAST($1);
+}
+
+UnaryOp
+  : '+' {
+    $$ = new string("+");
+  }
+  | '-' {
+    $$ = new string("-");
+  }
+  | '!' {
+    $$ = new string("!");
+  }
 %%
 
 void yyerror(unique_ptr<BaseAST> &ast, const char *s) {
