@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 #include "AST.h"
+#include "RISCV.h"
 
 using namespace std;
 
