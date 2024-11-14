@@ -2,11 +2,11 @@
 #include <unordered_map>
 #include "koopa.h"
 
-void Visit(const koopa_raw_program_t &raw);//why using "const" and "&"?
-void Visit(const koopa_raw_slice_t &slice);//why using "const" and "&"?
-void Visit(const koopa_raw_function_t &funs);//why using "const" and "&"?
-void Visit(const koopa_raw_basic_block_t &bb);//why using "const" and "&"?
-void Visit(const koopa_raw_value_t &value);//why using "const" and "&"?
+void Visit(const koopa_raw_program_t &raw);
+void Visit(const koopa_raw_slice_t &slice);
+void Visit(const koopa_raw_function_t &funs);
+void Visit(const koopa_raw_basic_block_t &bb);
+void Visit(const koopa_raw_value_t &value);
 
 void Visit(const koopa_raw_program_t &raw){
 /*
@@ -53,8 +53,8 @@ void Visit(const koopa_raw_function_t &func){
     if (!func_name.empty() && func_name[0] == '@') {
         func_name = func_name.substr(1); //remove "@"
     }
-    std::cout << "  " << ".globl " << func_name << std::endl;  // 输出函数的全局标识符
-    std::cout << func_name << ":" << std::endl;  // 输出函数标签
+    std::cout << "  " << ".globl " << func_name << std::endl;  // output the global tag
+    std::cout << func_name << ":" << std::endl;  //output the function name
     Visit(func->bbs);//koopa_raw_slice_t
 }
 
@@ -81,7 +81,7 @@ void Visit(const koopa_raw_value_t &value){
 //    std::cout<<"here4!"<<std::endl;
     const auto &kind = value->kind;
     int32_t int_val;
-    std::string reg, ret_reg, lhs_reg, rhs_reg, result_reg;
+    std::string reg, ret_reg, lhs_reg, rhs_reg, reg;
 
     switch(kind.tag){
         case KOOPA_RVT_RETURN://return
@@ -105,7 +105,6 @@ void Visit(const koopa_raw_value_t &value){
                 int_to_reg[int_val] = reg;
                 std::cout << "  " << "li " << reg << ", " << int_val << std::endl;
             }
-            //assert(int_val==0);//???What if the return value does not equals to 0? Should us send error messages?
             break;
 
         case KOOPA_RVT_BINARY:
@@ -129,42 +128,42 @@ void Visit(const koopa_raw_value_t &value){
 
             switch (kind.data.binary.op){
                 case KOOPA_RBO_ADD://addition operation
-                    result_reg = "t" + std::to_string(temp_reg++);
-                    value_to_reg[value] = result_reg;
-                    std::cout << "  " << "add " << result_reg << "," << lhs_reg << "," << rhs_reg << std::endl;
+                    reg = "t" + std::to_string(temp_reg++);
+                    value_to_reg[value] = reg;
+                    std::cout << "  " << "add " << reg << "," << lhs_reg << "," << rhs_reg << std::endl;
                     break;
-                case KOOPA_RBO_SUB:
-                    result_reg = "t" + std::to_string(temp_reg++);
-                    value_to_reg[value] = result_reg;                
-                    std::cout << "  " << "sub " << result_reg << "," << lhs_reg << "," << rhs_reg << std::endl;
+                case KOOPA_RBO_SUB://substraction operation
+                    reg = "t" + std::to_string(temp_reg++);
+                    value_to_reg[value] = reg;                
+                    std::cout << "  " << "sub " << reg << "," << lhs_reg << "," << rhs_reg << std::endl;
                     break;
-                case KOOPA_RBO_MUL:
-                    result_reg = "t" + std::to_string(temp_reg++);
-                    value_to_reg[value] = result_reg;                
-                    std::cout << "  " << "mul " << result_reg << "," << lhs_reg << "," << rhs_reg << std::endl;
+                case KOOPA_RBO_MUL://multiplication operation
+                    reg = "t" + std::to_string(temp_reg++);
+                    value_to_reg[value] = reg;                
+                    std::cout << "  " << "mul " << reg << "," << lhs_reg << "," << rhs_reg << std::endl;
                     break;
-                case KOOPA_RBO_DIV:
-                    result_reg = "t" + std::to_string(temp_reg++);
-                    value_to_reg[value] = result_reg;                
-                    std::cout << "  " << "div " << result_reg << "," << lhs_reg << "," << rhs_reg << std::endl;
+                case KOOPA_RBO_DIV://division operation
+                    reg = "t" + std::to_string(temp_reg++);
+                    value_to_reg[value] = reg;                
+                    std::cout << "  " << "div " << reg << "," << lhs_reg << "," << rhs_reg << std::endl;
                     break;
-                case KOOPA_RBO_MOD:
-                    result_reg = "t" + std::to_string(temp_reg++);
-                    value_to_reg[value] = result_reg;                
-                    std::cout << "  " << "mod " << result_reg << "," << lhs_reg << "," << rhs_reg << std::endl;
+                case KOOPA_RBO_MOD://mod operation
+                    reg = "t" + std::to_string(temp_reg++);
+                    value_to_reg[value] = reg;                
+                    std::cout << "  " << "mod " << reg << "," << lhs_reg << "," << rhs_reg << std::endl;
                     break;
-                case KOOPA_RBO_EQ:
-                    result_reg = "t" + std::to_string(--temp_reg);
+                case KOOPA_RBO_EQ://NOT operation
+                    reg = "t" + std::to_string(--temp_reg);//compare the same element
                     temp_reg++;
-                    value_to_reg[value] = result_reg;                
-                    std::cout << "  " << "xor " << result_reg << "," << lhs_reg << "," << rhs_reg << std::endl;
-                    std::cout << "  " << "seqz " << result_reg << "," << result_reg << std::endl;
+                    value_to_reg[value] = reg;                
+                    std::cout << "  " << "xor " << reg << "," << lhs_reg << "," << rhs_reg << std::endl;
+                    std::cout << "  " << "seqz " << reg << "," << reg << std::endl;
                     break;
             }
             break;
         
         default:
-            std::cout << "Unhandled operation: " << kind.data.binary.op << std::endl;
+            std::cout << "Unhandled operation: " << kind.tag << std::endl;
             assert(false);//Unsupported types
             break;
     }
