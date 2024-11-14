@@ -1,3 +1,0 @@
-# Hashes of file build rules.
-eea0db4436e0fe31973e93903b0ce360 sysy.lex.cpp
-f04001378cfdc18b54194ae6e2cc6c4f sysy.tab.cpp

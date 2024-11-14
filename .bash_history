@@ -102,3 +102,54 @@ In file included from /root/src/main.cpp:8:
 /root/src/RISCV.h:112:9: error: cannot jump from switch statement to this case label
         case KOOPA_RVT_BINARY:{         ^
 /root/src/RISCV.h:105:31: note: jump bypasses variable initialization
+cmake -DCMAKE_BUILD_TYPE=Debug -B build
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake -DCMAKE_BUILD_TYPE=Debug -B build
+cmake --build build
+cmake -DCMAKE_BUILD_TYPE=Debug -B build
+exit
+cmake -DCMAKE_BUILD_TYPE=Debug -B build
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+exit

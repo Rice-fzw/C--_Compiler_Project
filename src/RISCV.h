@@ -90,7 +90,6 @@ void Visit(const koopa_raw_value_t &value){
             }
             else{
                 Visit(kind.data.ret.value);//get return value
-                std::cout << "here2!" << std::endl;
                 ret_reg = value_to_reg[kind.data.ret.value];
                 std::cout << "  " << "mv a0," << ret_reg << std::endl; //use the last register
             }
@@ -102,6 +101,49 @@ void Visit(const koopa_raw_value_t &value){
             int_to_reg[int_val] = reg;
             std::cout << "  " << "li " << reg << ", " << int_val << std::endl;
             //assert(int_val==0);//???What if the return value does not equals to 0? Should us send error messages?
+            break;
+
+        case KOOPA_RVT_BINARY:
+            if (value_to_reg.find(value) != value_to_reg.end()) {
+                // If the value has already been processed, avoid reprocessing
+                break;
+            }
+            
+            Visit(kind.data.binary.lhs);
+            Visit(kind.data.binary.rhs);
+            if (kind.data.binary.lhs->kind.tag == KOOPA_RVT_INTEGER) {
+                lhs_reg = int_to_reg[kind.data.binary.lhs->kind.data.integer.value];
+            } else {
+                lhs_reg = value_to_reg[kind.data.binary.lhs];
+            }
+            if (kind.data.binary.rhs->kind.tag == KOOPA_RVT_INTEGER) {
+                rhs_reg = int_to_reg[kind.data.binary.rhs->kind.data.integer.value];
+            } else {
+                rhs_reg = value_to_reg[kind.data.binary.rhs];
+            }
+            result_reg = "t" + std::to_string(temp_reg++);
+            value_to_reg[value] = result_reg;
+
+            switch (kind.data.binary.op){
+                case KOOPA_RBO_ADD://addition operation
+                    std::cout << "  " << "add " << result_reg << "," << lhs_reg << "," << rhs_reg << std::endl;
+                    break;
+                case KOOPA_RBO_SUB:
+                    std::cout << "  " << "sub " << result_reg << "," << lhs_reg << "," << rhs_reg << std::endl;
+                    break;
+                case KOOPA_RBO_MUL:
+                    std::cout << "  " << "mul " << result_reg << "," << lhs_reg << "," << rhs_reg << std::endl;
+                    break;
+                case KOOPA_RBO_DIV:
+                    std::cout << "  " << "div " << result_reg << "," << lhs_reg << "," << rhs_reg << std::endl;
+                    break;
+                case KOOPA_RBO_MOD:
+                    std::cout << "  " << "mod " << result_reg << "," << lhs_reg << "," << rhs_reg << std::endl;
+                    break;
+                case KOOPA_RBO_EQ:
+                    std::cout << "hereEQ!" << std::endl;
+                    break;
+            }
             break;
         
         default:
