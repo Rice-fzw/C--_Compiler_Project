@@ -153,3 +153,42 @@ cmake -DCMAKE_BUILD_TYPE=Debug -B build
 cmake --build build
 ./build/compiler -riscv debug/test.c -o hello.s
 exit
+sh test.sh
+sh test.sh
+sh test.sh
+sh test.sh
+sh test.sh
+sh test.sh
+sh test.sh
+sh test.sh
+sh test.sh
+sh test.sh
+sh test.sh
+sh test,sh
+sh test.sh
+sh test.sh
+sh test.sh
+sh test.sh
+sh test.sh
+cmake -DCMAKE_BUILD_TYPE=Debug -B build
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+sh test.sh
+cmake -DCMAKE_BUILD_TYPE=Debug -B build
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.scmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s

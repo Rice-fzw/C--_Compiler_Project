@@ -86,7 +86,7 @@ void Visit(const koopa_raw_value_t &value){
     switch(kind.tag){
         case KOOPA_RVT_RETURN://return
             if (kind.data.ret.value->kind.tag == KOOPA_RVT_INTEGER){
-                std::cout << "  " << "li a0, " << kind.data.ret.value->kind.data.integer.value << std::endl;
+                std::cout << "  " << "li a0, " << kind.data.ret.value->kind.data.integer.value << std::endl;   
             }
             else{
                 Visit(kind.data.ret.value);//get return value
@@ -96,10 +96,15 @@ void Visit(const koopa_raw_value_t &value){
             std::cout << "  "<<"ret" << std::endl; // Return from function
             break;
         case KOOPA_RVT_INTEGER:
-            reg = "t" + std::to_string(temp_reg++);
             int_val=kind.data.integer.value;
-            int_to_reg[int_val] = reg;
-            std::cout << "  " << "li " << reg << ", " << int_val << std::endl;
+            if (int_val == 0){
+                int_to_reg[int_val] = "x0";
+                break;
+            }else{
+                reg = "t" + std::to_string(temp_reg++);
+                int_to_reg[int_val] = reg;
+                std::cout << "  " << "li " << reg << ", " << int_val << std::endl;
+            }
             //assert(int_val==0);//???What if the return value does not equals to 0? Should us send error messages?
             break;
 
@@ -108,7 +113,7 @@ void Visit(const koopa_raw_value_t &value){
                 // If the value has already been processed, avoid reprocessing
                 break;
             }
-            
+
             Visit(kind.data.binary.lhs);
             Visit(kind.data.binary.rhs);
             if (kind.data.binary.lhs->kind.tag == KOOPA_RVT_INTEGER) {
@@ -121,27 +126,39 @@ void Visit(const koopa_raw_value_t &value){
             } else {
                 rhs_reg = value_to_reg[kind.data.binary.rhs];
             }
-            result_reg = "t" + std::to_string(temp_reg++);
-            value_to_reg[value] = result_reg;
 
             switch (kind.data.binary.op){
                 case KOOPA_RBO_ADD://addition operation
+                    result_reg = "t" + std::to_string(temp_reg++);
+                    value_to_reg[value] = result_reg;
                     std::cout << "  " << "add " << result_reg << "," << lhs_reg << "," << rhs_reg << std::endl;
                     break;
                 case KOOPA_RBO_SUB:
+                    result_reg = "t" + std::to_string(temp_reg++);
+                    value_to_reg[value] = result_reg;                
                     std::cout << "  " << "sub " << result_reg << "," << lhs_reg << "," << rhs_reg << std::endl;
                     break;
                 case KOOPA_RBO_MUL:
+                    result_reg = "t" + std::to_string(temp_reg++);
+                    value_to_reg[value] = result_reg;                
                     std::cout << "  " << "mul " << result_reg << "," << lhs_reg << "," << rhs_reg << std::endl;
                     break;
                 case KOOPA_RBO_DIV:
+                    result_reg = "t" + std::to_string(temp_reg++);
+                    value_to_reg[value] = result_reg;                
                     std::cout << "  " << "div " << result_reg << "," << lhs_reg << "," << rhs_reg << std::endl;
                     break;
                 case KOOPA_RBO_MOD:
+                    result_reg = "t" + std::to_string(temp_reg++);
+                    value_to_reg[value] = result_reg;                
                     std::cout << "  " << "mod " << result_reg << "," << lhs_reg << "," << rhs_reg << std::endl;
                     break;
                 case KOOPA_RBO_EQ:
-                    std::cout << "hereEQ!" << std::endl;
+                    result_reg = "t" + std::to_string(--temp_reg);
+                    temp_reg++;
+                    value_to_reg[value] = result_reg;                
+                    std::cout << "  " << "xor " << result_reg << "," << lhs_reg << "," << rhs_reg << std::endl;
+                    std::cout << "  " << "seqz " << result_reg << "," << result_reg << std::endl;
                     break;
             }
             break;
