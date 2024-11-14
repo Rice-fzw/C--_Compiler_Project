@@ -486,4 +486,87 @@ class LOrExpAST : public BaseAST {
   }
 };
 
+// 常量声明
+class ConstDeclAST : public BaseAST {
+ public:
+  // 基础类型 (int)
+  std::string btype;
+  // 常量定义列表
+  std::vector<std::unique_ptr<BaseAST>> const_defs;
+
+  void Dump(int level = 0) const override {
+    indent(level);
+    std::cout << "ConstDecl {\n";
+    indent(level + 1);
+    std::cout << "btype: " << btype << "\n";
+    indent(level + 1);
+    std::cout << "const_defs: [\n";
+    for (const auto& def : const_defs) {
+      def->Dump(level + 2);
+    }
+    indent(level + 1);
+    std::cout << "]\n";
+    indent(level);
+    std::cout << "}\n";
+  }
+};
+
+// 常量定义
+class ConstDefAST : public BaseAST {
+ public:
+  std::string ident;
+  std::unique_ptr<BaseAST> const_init_val;
+
+  void Dump(int level = 0) const override {
+    indent(level);
+    std::cout << "ConstDef {\n";
+    indent(level + 1);
+    std::cout << "ident: " << ident << "\n";
+    indent(level + 1);
+    std::cout << "const_init_val: {\n";
+    const_init_val->Dump(level + 2);
+    indent(level + 1);
+    std::cout << "}\n";
+    indent(level);
+    std::cout << "}\n";
+  }
+};
+
+// 更新BlockAST以支持多个语句
+class BlockAST : public BaseAST {
+ public:
+  std::vector<std::unique_ptr<BaseAST>> items;
+
+  void Dump(int level = 0) const override {
+    indent(level);
+    std::cout << "Block {\n";
+    indent(level + 1);
+    std::cout << "items: [\n";
+    for (const auto& item : items) {
+      item->Dump(level + 2);
+    }
+    indent(level + 1);
+    std::cout << "]\n";
+    indent(level);
+    std::cout << "}\n";
+  }
+};
+
+// 左值表达式
+class LValAST : public BaseAST {
+ public:
+  std::string ident;
+
+  explicit LValAST(const std::string& name) : ident(name) {}
+
+  void Dump(int level = 0) const override {
+    indent(level);
+    std::cout << "LVal {\n";
+    indent(level + 1);
+    std::cout << "ident: " << ident << "\n";
+    indent(level);
+    std::cout << "}\n";
+  }
+};
+
 #endif
