@@ -91,7 +91,7 @@ void Visit(const koopa_raw_value_t &value){
             else{
                 Visit(kind.data.ret.value);//get return value
                 ret_reg = value_to_reg[kind.data.ret.value];
-                std::cout << "  " << "mv a0," << ret_reg << std::endl; //use the last register
+                std::cout << "  " << "mv a0, " << ret_reg << std::endl; //use the last register
             }
             std::cout << "  "<<"ret" << std::endl; // Return from function
             break;
