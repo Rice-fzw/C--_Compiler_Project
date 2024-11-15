@@ -81,7 +81,7 @@ void Visit(const koopa_raw_value_t &value){
 //    std::cout<<"here4!"<<std::endl;
     const auto &kind = value->kind;
     int32_t int_val;
-    std::string reg, ret_reg, lhs_reg, rhs_reg, reg;
+    std::string reg, ret_reg, lhs_reg, rhs_reg;
 
     switch(kind.tag){
         case KOOPA_RVT_RETURN://return
@@ -130,34 +130,34 @@ void Visit(const koopa_raw_value_t &value){
                 case KOOPA_RBO_ADD://addition operation
                     reg = "t" + std::to_string(temp_reg++);
                     value_to_reg[value] = reg;
-                    std::cout << "  " << "add " << reg << "," << lhs_reg << "," << rhs_reg << std::endl;
+                    std::cout << "  " << "add " << reg << ", " << lhs_reg << ", " << rhs_reg << std::endl;
                     break;
                 case KOOPA_RBO_SUB://substraction operation
                     reg = "t" + std::to_string(temp_reg++);
                     value_to_reg[value] = reg;                
-                    std::cout << "  " << "sub " << reg << "," << lhs_reg << "," << rhs_reg << std::endl;
+                    std::cout << "  " << "sub " << reg << ", " << lhs_reg << ", " << rhs_reg << std::endl;
                     break;
                 case KOOPA_RBO_MUL://multiplication operation
                     reg = "t" + std::to_string(temp_reg++);
                     value_to_reg[value] = reg;                
-                    std::cout << "  " << "mul " << reg << "," << lhs_reg << "," << rhs_reg << std::endl;
+                    std::cout << "  " << "mul " << reg << ", " << lhs_reg << ", " << rhs_reg << std::endl;
                     break;
                 case KOOPA_RBO_DIV://division operation
                     reg = "t" + std::to_string(temp_reg++);
                     value_to_reg[value] = reg;                
-                    std::cout << "  " << "div " << reg << "," << lhs_reg << "," << rhs_reg << std::endl;
+                    std::cout << "  " << "div " << reg << ", " << lhs_reg << ", " << rhs_reg << std::endl;
                     break;
                 case KOOPA_RBO_MOD://mod operation
                     reg = "t" + std::to_string(temp_reg++);
                     value_to_reg[value] = reg;                
-                    std::cout << "  " << "mod " << reg << "," << lhs_reg << "," << rhs_reg << std::endl;
+                    std::cout << "  " << "mod " << reg << ", " << lhs_reg << ", " << rhs_reg << std::endl;
                     break;
                 case KOOPA_RBO_EQ://NOT operation
                     reg = "t" + std::to_string(--temp_reg);//compare the same element
                     temp_reg++;
                     value_to_reg[value] = reg;                
-                    std::cout << "  " << "xor " << reg << "," << lhs_reg << "," << rhs_reg << std::endl;
-                    std::cout << "  " << "seqz " << reg << "," << reg << std::endl;
+                    std::cout << "  " << "xor " << reg << ", " << lhs_reg << ", " << rhs_reg << std::endl;
+                    std::cout << "  " << "seqz " << reg << ", " << reg << std::endl;
                     break;
             }
             break;
