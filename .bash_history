@@ -192,3 +192,20 @@ cmake --build build
 ./build/compiler -riscv debug/test.c -o hello.s
 cmake --build build
 ./build/compiler -riscv debug/test.c -o hello.s
+cmake -DCMAKE_BUILD_TYPE=Debug -B build
+cmake -DCMAKE_BUILD_TYPE=Debug -B build
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+sh test.sh
+cmake -DCMAKE_BUILD_TYPE=Debug -B build
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake -DCMAKE_BUILD_TYPE=Debug -B build
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
+cmake --build build
+./build/compiler -riscv debug/test.c -o hello.s
