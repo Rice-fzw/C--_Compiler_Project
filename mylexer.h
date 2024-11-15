@@ -1,29 +1,30 @@
 #ifndef mylexer_h
 #define mylexer_h
 
-#define INT 1
-#define RETURN 2
-#define IDENT 3
-#define INT_CONST 4
-#define WHILE 5
-#define IF 6
-#define ELSE 7
-#define EQ 8
-#define LAND 9
-#define LOR 10
-#define LE 11
-#define GE 12
-#define NE 13
-#define CONST 14
-#define MAIN 15
-#define BREAK 16
-#define CONTINUE 17
+// #define INT 1
+// #define RETURN 2
+// #define IDENT 3
+// #define INT_CONST 4
+// #define WHILE 5
+// #define IF 6
+// #define ELSE 7
+// #define EQ 8
+// #define LAND 9
+// #define LOR 10
+// #define LE 11
+// #define GE 12
+// #define NE 13
+// #define CONST 14
+// #define MAIN 15
+// #define BREAK 16
+// #define CONTINUE 17
 
 
 
 #include <string>
 #include <fstream>
-#include "sysy.tab.hpp"  // 从bison生成的头文件中获取token定义
+// from bison's lgenerating .hpp file
+#include "sysy.tab.hpp"  
 
 class Mylexer{
     public:
