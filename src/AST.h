@@ -440,12 +440,11 @@ class EqExpAST : public BaseAST {
     if (right_AST){
       std::string right_result = right_AST->dumpIR(tempVarCounter);
       std::string tempVar= "%" + std::to_string(tempVarCounter++);
-      std::cout<<"Eqexp\n";
       if (op == "=="){
-        std::cout << "  " << tempVar << " = eq" << left_result << ", " << right_result << "\n";
+        std::cout << "  " << tempVar << " = eq " << left_result << " , " << right_result << "\n";
       }
       else if (op == "!="){
-        std::cout << "  " << tempVar << " = ne" << left_result << ", " << right_result << "\n";
+        std::cout << "  " << tempVar << " = ne " << left_result << " , " << right_result << "\n";
       }
       else assert(false);
       return tempVar;
@@ -612,4 +611,5 @@ class LOrExpAST : public BaseAST {
     return result_var;
   }
 };
+
 #endif
