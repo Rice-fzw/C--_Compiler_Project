@@ -31,7 +31,7 @@ using namespace std;
 }
 
 //关键字Token
-%token INT RETURN 
+%token INT RETURN CONST
 //比较运算符Token
 %token LE GE EQ NE
 //逻辑运算符Token
@@ -48,11 +48,15 @@ using namespace std;
 %token <str_val> IDENT
 %token <int_val> INT_CONST
 
-%type <ast_val> FuncDef FuncType Block Stmt
+%type <ast_val> FuncDef FuncType Block Stmt BlockItem
 %type <ast_val> Exp UnaryExp PrimaryExp MulExp AddExp
 %type <ast_val> RelExp EqExp LAndExp LOrExp
+
 %type <str_val> UnaryOp Mulop Addop
 %type <int_val> Number
+%type <ast_val> ConstDecl ConstDef ConstDefList ConstInitVal Decl ConstExp LVal
+%type <str_val> BType
+
 
 %%
 
@@ -83,10 +87,13 @@ FuncType
   ;
 
 Block
-  : '{' Stmt '}' {
+  : '{' BlockItem '}' {
     auto ast = new BlockAST();
-    ast->stmt = unique_ptr<BaseAST>($2);
+    ast->items.push_back(unique_ptr<BaseAST>($2));
     $$ = ast;
+  }
+  | '{' '}' {  // deal with empty block
+    $$ = new BlockAST();
   }
   ;
 
@@ -196,6 +203,9 @@ PrimaryExp
 | Number {
   $$ = new PrimaryExpAST($1);
 }
+| LVal {
+  $$ = new PrimaryExpAST(unique_ptr<BaseAST>($1), true); 
+}
 
 UnaryOp
   : '+' {
@@ -228,6 +238,77 @@ Mulop
     $$ = new string("%");
   }
   ;
+
+BlockItem
+  : Decl {
+    $$ = $1;
+  }
+  | Stmt {
+    $$ = $1;
+  }
+  | BlockItem BlockItem {  // Mutilple blockitems 
+    auto block = new BlockAST();
+    block->items.push_back(unique_ptr<BaseAST>($1));
+    block->items.push_back(unique_ptr<BaseAST>($2));
+    $$ = block;
+  }
+  ;
+
+Decl
+  : ConstDecl {
+    $$ = $1;
+  }
+  ;
+
+ConstDecl
+  :ConstDefList ';' {
+    $$ = $1;  // 直接使用ConstDefList构建的AST
+  }
+  ;
+
+ConstDefList
+  : CONST BType ConstDef {  // 单个常量定义: const int x = 1;
+    std::vector<std::unique_ptr<ConstDefAST>> defs;
+    defs.push_back(std::unique_ptr<ConstDefAST>(static_cast<ConstDefAST*>($3)));
+    $$ = new ConstDeclAST(*$2, std::move(defs));
+  }
+  | ConstDefList ',' ConstDef {  // 多个常量定义: const int x = 1, y = 2;
+    auto decl = static_cast<ConstDeclAST*>($1);
+    decl->const_defs.push_back(std::unique_ptr<ConstDefAST>(static_cast<ConstDefAST*>($3)));
+    $$ = decl;
+  }
+  ;
+BType
+  : INT {
+    $$ = new string("int");
+  }
+  ;
+
+ConstDef
+  : IDENT '=' ConstInitVal {
+    $$ = new ConstDefAST("=", *$1, std::unique_ptr<BaseAST>($3));
+  }
+  ;
+
+ConstInitVal 
+  : ConstExp {
+    $$ = $1;
+  }
+  ;
+
+ConstExp
+  : Exp {
+    $$ = $1;
+  }
+  ;
+
+
+LVal
+  : IDENT {
+    $$ = new LValAST(*$1);
+  }
+  ;
+
 %%
 
 void yyerror(unique_ptr<BaseAST> &ast, const char *s) {

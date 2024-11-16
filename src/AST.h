@@ -6,6 +6,7 @@
 #include <iostream>
 #include <sstream>
 #include <cassert>
+#include <vector>
 
 static int symbol_num = 0;
 
@@ -17,8 +18,9 @@ inline void indent(int level) {
 }
 
 enum class PrimaryExpType {
-  exp,
-  number
+  exp, //Expression : 1 + 2 * 3
+  LVal, // Reference : int a = 1; a <---
+  number  // Number : 4
 };
 
 // 所有 AST 的基类
@@ -95,20 +97,32 @@ class FuncTypeAST : public BaseAST {
 };
 
 class BlockAST : public BaseAST {
- public:
-  std::unique_ptr<BaseAST> stmt;
+public:
+    std::vector<std::unique_ptr<BaseAST>> items;
 
-  void Dump(int level = 0) const override {
-    indent(level);
-    std::cout << "Block {\n";
-    stmt->Dump(level + 1);
-    indent(level);
-    std::cout << "}\n";
-  }
+    void Dump(int level = 0) const override {
+        indent(level);
+        std::cout << "Block {\n";
+        for (const auto& item : items) {
+            item->Dump(level + 1);
+        }
+        indent(level);
+        std::cout << "}\n";
+    }
 
-  std::string dumpIR(int& tempVarCounter) const override {
-    return stmt->dumpIR(tempVarCounter);  // 返回语句的 IR 表达
-  }
+    //Claude写的DumpIR
+    std::string dumpIR(int& tempVarCounter) const override {
+        std::string last_result;
+        for (const auto& item : items) {
+            last_result = item->dumpIR(tempVarCounter);
+        }
+        return last_result;
+    }
+
+    //之前的DumpIR
+    // std::string dumpIR(int& tempVarCounter) const override {
+    // return stmt->dumpIR(tempVarCounter);  // 返回语句的 IR 表达
+    // }
 };
 
 class StmtAST : public BaseAST {
@@ -158,10 +172,13 @@ class PrimaryExpAST : public BaseAST {
   PrimaryExpType type;
   std::unique_ptr<BaseAST> exp;
   int number;
+  std::unique_ptr<BaseAST> LVal;
 
   PrimaryExpAST(int val) : type(PrimaryExpType::number), number(val), exp(nullptr) {}
   PrimaryExpAST(std::unique_ptr<BaseAST> e)
     : type(PrimaryExpType::exp), number(0), exp(std::move(e)) {}
+  PrimaryExpAST(std::unique_ptr<BaseAST> l, bool isLVal) 
+    : type(PrimaryExpType::LVal), LVal(std::move(l)), number(0), exp(nullptr) {}
 
   void Dump(int level = 0) const override {
     indent(level);
@@ -174,6 +191,12 @@ class PrimaryExpAST : public BaseAST {
       case PrimaryExpType::exp:
         std::cout << "exp: {\n";
         exp->Dump(level + 2);
+        indent(level + 1);
+        std::cout << "}\n";
+        break;
+      case PrimaryExpType::LVal:
+        std::cout << "LVal: {\n";
+        LVal->Dump(level + 2);
         indent(level + 1);
         std::cout << "}\n";
         break;
@@ -612,4 +635,98 @@ class LOrExpAST : public BaseAST {
   }
 };
 
+// Single constant definition: x = 1
+class ConstDefAST : public BaseAST {
+public:
+    std::string op = "=";  // oprator
+    std::string ident;  // name
+    std::unique_ptr<BaseAST> init_val;  // initial value 
+
+    // Constructor
+    ConstDefAST(std::string op, std::string ident, std::unique_ptr<BaseAST> init) 
+        : op(op), ident(ident), init_val(std::move(init)) {}
+
+    void Dump(int level = 0) const override {
+        indent(level);
+        std::cout << "ConstDef {\n";
+        indent(level + 1);
+        std::cout << "ident: " << ident << "\n";
+        indent(level + 1);
+        std::cout << "init_val: {\n";
+        init_val->Dump(level + 2);
+        indent(level + 1);
+        std::cout << "}\n";
+        indent(level);
+        std::cout << "}\n";
+    }
+
+    std::string dumpIR(int& tempVarCounter) const override {
+        std::string init_val_ir = init_val->dumpIR(tempVarCounter);
+        // 为常量分配全局变量名
+        std::string constName = "@" + ident;
+        std::cout << "global " << constName << " = alloc i32, " << init_val_ir << "\n";
+        return constName;
+    }
+};
+
+// Whole sentence for declearing constants: const int x = 1, y = 2;
+class ConstDeclAST : public BaseAST {
+public:
+    std::string btype;                                  // Type(int) 
+    std::vector<std::unique_ptr<ConstDefAST>> const_defs;  // Constant List
+
+    // Constructor 
+    ConstDeclAST(std::string btype, std::vector<std::unique_ptr<ConstDefAST>> defs)
+        : btype(btype), const_defs(std::move(defs)) {}
+
+    void Dump(int level = 0) const override {
+        indent(level);
+        std::cout << "ConstDecl {\n";
+        indent(level + 1);
+        std::cout << "btype: " << btype << "\n";
+        indent(level + 1);
+        std::cout << "const_defs: [\n";
+        for (const auto& def : const_defs) {
+            def->Dump(level + 2);
+        }
+        indent(level + 1);
+        std::cout << "]\n";
+        indent(level);
+        std::cout << "}\n";
+    }
+
+    std::string dumpIR(int& tempVarCounter) const override {
+        for (const auto& def : const_defs) {
+            def->dumpIR(tempVarCounter);
+        }
+        return "";
+    }
+};
+
+// Variable Reference AST Node : int a = 1
+//                               return a <--- 
+class LValAST : public BaseAST {
+public:
+    std::string ident;  // variable name 
+
+    // Constructor 
+    LValAST(std::string name) : ident(name) {}
+
+    void Dump(int level = 0) const override {
+        indent(level);
+        std::cout << "LValAST {\n";
+        indent(level + 1);
+        std::cout << "ident: " << ident << "\n";
+        indent(level);
+        std::cout << "}\n";
+    }
+
+    std::string dumpIR(int& tempVarCounter) const override {
+        // 获取变量的值
+        std::string var_ptr = "@" + ident;  // 变量的地址
+        std::string temp_var = "%" + std::to_string(tempVarCounter++);
+        std::cout << "  " << temp_var << " = load " << var_ptr << "\n";
+        return temp_var;
+    }
+};
 #endif
