@@ -612,5 +612,4 @@ class LOrExpAST : public BaseAST {
     return result_var;
   }
 };
-
 #endif
