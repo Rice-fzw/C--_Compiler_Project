@@ -376,23 +376,27 @@ class RelExpAST : public BaseAST {
     std::cout << "}\n";
   }
   std::string dumpIR(int& tempVarCounter) const override {
-    std::string left_result = right_AST->dumpIR(tempVarCounter);
-    std::string right_result = left_AST->dumpIR(tempVarCounter);
-    std::string tempVar="%" + std::to_string(++tempVarCounter);
-    if (op == "<"){
-      std::cout << '\t' << tempVar << " = lt" << left_result << ", " << right_result << "\n";
+    std::string left_result = left_AST->dumpIR(tempVarCounter);
+    if (right_AST) {
+      std::string right_result = right_AST->dumpIR(tempVarCounter);
+//      std::string right_result = left_AST->dumpIR(tempVarCounter);
+      std::string tempVar="%" + std::to_string(tempVarCounter++);
+      if (op == "<"){
+        std::cout << "  " << tempVar << " = lt " << left_result << ", " << right_result << "\n";
+      }
+      else if (op == ">"){
+        std::cout << "  " << tempVar << " = gt " << left_result << ", " << right_result << "\n";
+      }
+      else if (op=="<="){
+        std::cout << "  " << tempVar << " = le " << left_result << ", " << right_result << "\n";
+      }
+      else if (op==">="){
+        std::cout << "  " << tempVar << " = ge " << left_result << ", " << right_result << "\n";
+      }
+      else assert(false);
+      return tempVar;
     }
-    else if (op == ">"){
-      std::cout << '\t' << tempVar << " = gt" << left_result << ", " << right_result << "\n";
-    }
-    else if (op=="<="){
-      std::cout << '\t' << tempVar << " = le" << left_result << ", " << right_result << "\n";
-    }
-    else if (op==">="){
-      std::cout << '\t' << tempVar << " = ge" << left_result << ", " << right_result << "\n";
-    }
-    else assert(false);
-    return tempVar;
+    return left_result;
   }
 };
 
@@ -432,17 +436,21 @@ class EqExpAST : public BaseAST {
     std::cout << "}\n";
   }
   std::string dumpIR(int& tempVarCounter) const override {
-    std::string left_result = right_AST->dumpIR(tempVarCounter);
-    std::string right_result = left_AST->dumpIR(tempVarCounter);
-    std::string tempVar= "%" + std::to_string(++tempVarCounter);
-    if (op == "=="){
-      std::cout << '\t' << tempVar << " = eq" << left_result << ", " << right_result << "\n";
+    std::string left_result = left_AST->dumpIR(tempVarCounter);
+    if (right_AST){
+      std::string right_result = right_AST->dumpIR(tempVarCounter);
+      std::string tempVar= "%" + std::to_string(tempVarCounter++);
+      std::cout<<"Eqexp\n";
+      if (op == "=="){
+        std::cout << "  " << tempVar << " = eq" << left_result << ", " << right_result << "\n";
+      }
+      else if (op == "!="){
+        std::cout << "  " << tempVar << " = ne" << left_result << ", " << right_result << "\n";
+      }
+      else assert(false);
+      return tempVar;
     }
-    else if (op == "!="){
-      std::cout << '\t' << tempVar << " = ne" << left_result << ", " << right_result << "\n";
-    }
-    else assert(false);
-    return tempVar;
+    return left_result;
   }
 };
 
@@ -484,44 +492,41 @@ class LAndExpAST : public BaseAST {
 
   std::string dumpIR(int& tempVarCounter) const override {
     std::string result_var = "";
-    std::cout << ("hear!!\n");
     if (!right_AST) {
       result_var = left_AST->dumpIR(tempVarCounter);
     } else {
       // Left and right operands exist, generate code for logical AND (&&)
       std::string left_result = left_AST->dumpIR(tempVarCounter);
-
       // Generate unique labels for control flow
-      std::string then_label = "%then__" + std::to_string(tempVarCounter);
-      std::string else_label = "%else__" + std::to_string(tempVarCounter);
-      std::string end_label = "%end__" + std::to_string(tempVarCounter++);
-      std::string result_var_ptr = "%" + std::to_string(symbol_num++);
-
+      std::string then_label = "%then__" + std::to_string(symbol_num);
+      std::string else_label = "%else__" + std::to_string(symbol_num);
+      std::string end_label = "%end__" + std::to_string(symbol_num++);
+      std::string result_var_ptr = "%" + std::to_string(tempVarCounter++);
       // Allocate memory for the result of the logical AND
-      std::cout << '\t' << result_var_ptr << " = alloc i32" << std::endl;
+      std::cout << "  " << result_var_ptr << " = alloc i32" << std::endl;
 
       // Perform branching based on the result of the left operand
-      std::cout << "\tbr " << left_result << ", " << then_label << ", " << else_label << std::endl;
+      std::cout << "  br " << left_result << ", " << then_label << ", " << else_label << std::endl;
 
       // Then block: evaluate the right operand if left is true
       std::cout << then_label << ":" << std::endl;
       std::string right_result = right_AST->dumpIR(tempVarCounter);
-      std::string tmp_result_var = "%" + std::to_string(symbol_num++);
-      std::cout << '\t' << tmp_result_var << " = ne " << right_result << ", 0" << std::endl;
+      std::string tmp_result_var = "%" + std::to_string(tempVarCounter++);
+      std::cout << "  " << tmp_result_var << " = ne " << right_result << ", 0" << std::endl;
 
       // Store the result of right operand evaluation
-      std::cout << "\tstore " << tmp_result_var << ", " << result_var_ptr << std::endl;
-      std::cout << "\tjump " << end_label << std::endl;
+      std::cout << "  store " << tmp_result_var << ", " << result_var_ptr << std::endl;
+      std::cout << "  jump " << end_label << std::endl;
 
       // Else block: if left is false, set the result to false (0)
       std::cout << else_label << ":" << std::endl;
-      std::cout << "\tstore 0, " << result_var_ptr << std::endl;
-      std::cout << "\tjump " << end_label << std::endl;
+      std::cout << "  store 0, " << result_var_ptr << std::endl;
+      std::cout << "  jump " << end_label << std::endl;
 
       // End label: load the final result
       std::cout << end_label << ":" << std::endl;
-      result_var = "%" + std::to_string(symbol_num++);
-      std::cout << '\t' << result_var << " = load " << result_var_ptr << std::endl;
+      result_var = "%" + std::to_string(tempVarCounter++);
+      std::cout << "  " << result_var << " = load " << result_var_ptr << std::endl;
     }
     return result_var;
   }
@@ -565,47 +570,44 @@ class LOrExpAST : public BaseAST {
 
   std::string dumpIR(int& tempVarCounter) const override {
     std::string result_var = "";
-
     if (!right_AST) {
       // If there's no right operand, just dump the IR for the left operand
       result_var = left_AST->dumpIR(tempVarCounter);
     } else {
       // Generate IR for logical OR (||), with both left and right operands
-
       // First, get the IR for the left operand
       std::string left_result = left_AST->dumpIR(tempVarCounter);
-
       // Generate unique labels for control flow
-      std::string then_label = "%then__" + std::to_string(tempVarCounter);
-      std::string else_label = "%else__" + std::to_string(tempVarCounter);
-      std::string end_label = "%end__" + std::to_string(tempVarCounter++);
-      std::string result_var_ptr = "%" + std::to_string(symbol_num++);
+      std::string then_label = "%then__" + std::to_string(symbol_num);
+      std::string else_label = "%else__" + std::to_string(symbol_num);
+      std::string end_label = "%end__" + std::to_string(symbol_num++);
+      std::string result_var_ptr = "%" + std::to_string(tempVarCounter++);
 
       // Allocate memory for storing the result of the logical OR
-      std::cout << '\t' << result_var_ptr << " = alloc i32" << std::endl;
+      std::cout << "  " << result_var_ptr << " = alloc i32" << std::endl;
 
       // Conditional branching based on the result of the left operand
-      std::cout << "\tbr " << left_result << ", " << then_label << ", " << else_label << std::endl;
+      std::cout << "  br " << left_result << ", " << then_label << ", " << else_label << std::endl;
 
       // Then block: if the left operand is non-zero (true), store 1
       std::cout << then_label << ":" << std::endl;
-      std::cout << "\tstore 1, " << result_var_ptr << std::endl;
-      std::cout << "\tjump " << end_label << std::endl;
+      std::cout << "  store 1, " << result_var_ptr << std::endl;
+      std::cout << "  jump " << end_label << std::endl;
 
       // Else block: if the left operand is zero (false), evaluate the right operand
       std::cout << else_label << ":" << std::endl;
-      std::string tmp_result_var = "%" + std::to_string(symbol_num++);
+      std::string tmp_result_var = "%" + std::to_string(tempVarCounter++);
       std::string right_result = right_AST->dumpIR(tempVarCounter);
-      std::cout << '\t' << tmp_result_var << " = ne " << right_result << ", 0" << std::endl;
+      std::cout << "  " << tmp_result_var << " = ne " << right_result << ", 0" << std::endl;
 
       // Store the result of the right operand evaluation (1 if true, 0 if false)
-      std::cout << "\tstore " << tmp_result_var << ", " << result_var_ptr << std::endl;
-      std::cout << "\tjump " << end_label << std::endl;
+      std::cout << "  store " << tmp_result_var << ", " << result_var_ptr << std::endl;
+      std::cout << "  jump " << end_label << std::endl;
 
       // End block: load the final result (either 1 or 0) into the result variable
       std::cout << end_label << ":" << std::endl;
-      result_var = "%" + std::to_string(symbol_num++);
-      std::cout << '\t' << result_var << " = load " << result_var_ptr << std::endl;
+      result_var = "%" + std::to_string(tempVarCounter++);
+      std::cout << "  " << result_var << " = load " << result_var_ptr << std::endl;
     }
     return result_var;
   }
