@@ -7,7 +7,6 @@
 }
 
 %{
-
 #include <memory>
 #include <string>
 #include <iostream>
@@ -48,13 +47,14 @@ using namespace std;
 %token <str_val> IDENT
 %token <int_val> INT_CONST
 
-%type <ast_val> FuncDef FuncType Block Stmt BlockItem
+%type <ast_val> FuncDef FuncType Block Stmt BlockItem BlockItems
 %type <ast_val> Exp UnaryExp PrimaryExp MulExp AddExp
 %type <ast_val> RelExp EqExp LAndExp LOrExp
 
 %type <str_val> UnaryOp Mulop Addop
 %type <int_val> Number
 %type <ast_val> ConstDecl ConstDef ConstDefList ConstInitVal Decl ConstExp LVal
+%type <ast_val> VarDecl VarDefList VarDef InitVal
 %type <str_val> BType
 
 
@@ -87,10 +87,8 @@ FuncType
   ;
 
 Block
-  : '{' BlockItem '}' {
-    auto ast = new BlockAST();
-    ast->items.push_back(unique_ptr<BaseAST>($2));
-    $$ = ast;
+  : '{' BlockItems '}' {
+    $$ = $2;
   }
   | '{' '}' {  // deal with empty block
     $$ = new BlockAST();
@@ -99,10 +97,10 @@ Block
 
 Stmt
   : RETURN Exp ';' {
-    auto ast = new StmtAST();
-    ast->stmt_type = "return";
-    ast->exp = unique_ptr<BaseAST>($2);
-    $$ = ast;
+    $$ = new StmtAST("return", unique_ptr<BaseAST>($2));
+  }
+  | LVal '=' Exp ';' {
+    $$ = new StmtAST("assign", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
   }
   ;
 
@@ -239,6 +237,19 @@ Mulop
   }
   ;
 
+BlockItems
+  : BlockItem {
+    auto block = new BlockAST();
+    block->items.push_back(unique_ptr<BaseAST>($1));
+    $$ = block;
+  }
+  | BlockItems BlockItem {
+    auto block = static_cast<BlockAST*>($1);
+    block->items.push_back(unique_ptr<BaseAST>($2));
+    $$ = block;
+  }
+  ;
+
 BlockItem
   : Decl {
     $$ = $1;
@@ -246,33 +257,30 @@ BlockItem
   | Stmt {
     $$ = $1;
   }
-  | BlockItem BlockItem {  // Mutilple blockitems 
-    auto block = new BlockAST();
-    block->items.push_back(unique_ptr<BaseAST>($1));
-    block->items.push_back(unique_ptr<BaseAST>($2));
-    $$ = block;
-  }
   ;
 
 Decl
   : ConstDecl {
     $$ = $1;
   }
+  | VarDecl {
+    $$ = $1;
+  }
   ;
 
 ConstDecl
   :ConstDefList ';' {
-    $$ = $1;  // 直接使用ConstDefList构建的AST
+    $$ = $1;  // Use ConstDefList as AST
   }
   ;
 
 ConstDefList
-  : CONST BType ConstDef {  // 单个常量定义: const int x = 1;
+  : CONST BType ConstDef {  // single variable: const int x = 1;
     std::vector<std::unique_ptr<ConstDefAST>> defs;
     defs.push_back(std::unique_ptr<ConstDefAST>(static_cast<ConstDefAST*>($3)));
     $$ = new ConstDeclAST(*$2, std::move(defs));
   }
-  | ConstDefList ',' ConstDef {  // 多个常量定义: const int x = 1, y = 2;
+  | ConstDefList ',' ConstDef {  // Multiple variables: const int x = 1, y = 2;
     auto decl = static_cast<ConstDeclAST*>($1);
     decl->const_defs.push_back(std::unique_ptr<ConstDefAST>(static_cast<ConstDefAST*>($3)));
     $$ = decl;
@@ -309,6 +317,39 @@ LVal
   }
   ;
 
+VarDecl
+    : VarDefList ';' {
+        $$ = $1; // Use VarDefList as AST
+    }
+    ;
+
+VarDefList
+    : BType VarDef { // Single variable: int x; int x = 1;
+        std::vector<std::unique_ptr<VarDefAST>> defs;
+        defs.push_back(std::unique_ptr<VarDefAST>(static_cast<VarDefAST*>($2)));
+        $$ = new VarDeclAST(*$1, std::move(defs));
+    }
+    | VarDefList ',' VarDef { //Multiple variables: int x = 1, y = 2;
+        auto decl = static_cast<VarDeclAST*>($1);
+        decl->var_defs.push_back(std::unique_ptr<VarDefAST>(static_cast<VarDefAST*>($3)));
+        $$ = decl;
+    }
+    ;
+
+VarDef
+    : IDENT {
+        $$ = new VarDefAST(*$1);
+    }
+    | IDENT '=' InitVal {
+        $$ = new VarDefAST("=", *$1, std::unique_ptr<BaseAST>($3));
+    }
+    ;
+
+InitVal
+    : Exp {
+        $$ = $1;
+    }
+    ;
 %%
 
 void yyerror(unique_ptr<BaseAST> &ast, const char *s) {

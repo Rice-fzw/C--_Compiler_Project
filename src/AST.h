@@ -126,29 +126,67 @@ public:
 };
 
 class StmtAST : public BaseAST {
- public:
-  std::string stmt_type;
-  std::unique_ptr<BaseAST> exp;
+public:
+    std::string stmt_type;  // "return" 或 "assign"
+    std::unique_ptr<BaseAST> exp;  // return语句的表达式或赋值语句的右值
+    std::unique_ptr<BaseAST> lval; // 赋值语句的左值(仅在赋值语句中使用)
 
-  void Dump(int level = 0) const override {
-    indent(level);
-    std::cout << "Stmt {\n";
-    indent(level + 1);
-    std::cout << "type: " << stmt_type << "\n";
-    exp->Dump(level + 1);
-    indent(level);
-    std::cout << "}\n";
-  }
+    StmtAST(std::string stmt_type, std::unique_ptr<BaseAST> exp)
+      : stmt_type("return"), exp(std::move(exp)), lval(nullptr) {}
 
-  std::string dumpIR(int& tempVarCounter) const override {
-    if (stmt_type == "return") {
-//      std::cout<<"here"<<"\n";
-      std::string IRR=exp->dumpIR(tempVarCounter);
-      std::cout <<"  " << "ret " << IRR << "\n";  // 生成返回语句的 IR
-      return "ret";
+    StmtAST(std::string stmt_type, std::unique_ptr<BaseAST> lval, std::unique_ptr<BaseAST> exp)
+      : stmt_type("assign"), lval(std::move(lval)), exp(std::move(exp)) {}
+
+    void Dump(int level = 0) const override {
+        indent(level);
+        std::cout << "Stmt {\n";
+        indent(level + 1);
+        std::cout << "type: " << stmt_type << "\n";
+        
+        if (stmt_type == "assign") {
+            indent(level + 1);
+            std::cout << "lval: {\n";
+            lval->Dump(level + 2);
+            indent(level + 1);
+            std::cout << "}\n";
+        }
+        
+        indent(level + 1);
+        std::cout << "exp: {\n";
+        exp->Dump(level + 2);
+        indent(level + 1);
+        std::cout << "}\n";
+        
+        indent(level);
+        std::cout << "}\n";
     }
-    return "";
-  }
+
+    //之前的DumpIR
+    std::string dumpIR(int& tempVarCounter) const override {
+      if (stmt_type == "return") {
+       //      std::cout<<"here"<<"\n";
+         std::string IRR=exp->dumpIR(tempVarCounter);
+         std::cout <<"  " << "ret " << IRR << "\n";  // 生成返回语句的 IR
+         return "ret";
+        }
+       return "";
+    }
+    //Claude写的DumpIR
+    // std::string dumpIR(int& tempVarCounter) const override {
+    //     if (stmt_type == "return") {
+    //         std::string exp_result = exp->dumpIR(tempVarCounter);
+    //         std::cout << "  ret " << exp_result << "\n";
+    //         return "ret";
+    //     } 
+    //     else if (stmt_type == "assign") {
+    //         std::string exp_result = exp->dumpIR(tempVarCounter);
+    //         auto lval_ast = dynamic_cast<LValAST*>(lval.get());
+    //         std::string var_ptr = "@" + lval_ast->ident;
+    //         std::cout << "  store " << exp_result << ", " << var_ptr << "\n";
+    //         return "";
+    //     }
+    //     return "";
+    // }
 };
 
 class ExpAST : public BaseAST {
@@ -729,4 +767,85 @@ public:
         return temp_var;
     }
 };
+
+// Variable declaration: int x; int x = 1;
+class VarDefAST : public BaseAST {
+public:
+    std::string op = "="; //operator
+    std::string ident;  // Variable name
+    std::unique_ptr<BaseAST> init_val;  // Initial value (optional)
+    bool has_init;  // Whether has initial value
+
+    // Constructor for declaration without initialization
+    VarDefAST(std::string name) 
+        : ident(name), init_val(nullptr), op(""), has_init(false) {}
+    
+    // Constructor for declaration with initialization
+    VarDefAST(std::string op, std::string name, std::unique_ptr<BaseAST> init) 
+        : op("="), ident(name), init_val(std::move(init)), has_init(true) {}
+
+    void Dump(int level = 0) const override {
+        indent(level);
+        std::cout << "VarDef {\n";
+        indent(level + 1);
+        std::cout << "ident: " << ident << "\n";
+        if (has_init) {
+            indent(level + 1);
+            std::cout << "init_val: {\n";
+            init_val->Dump(level + 2);
+            indent(level + 1);
+            std::cout << "}\n";
+        }
+        indent(level);
+        std::cout << "}\n";
+    }
+
+    //Claude's DumpIR
+    std::string dumpIR(int& tempVarCounter) const override {
+        std::string var_ptr = "@" + ident;
+        std::cout << "  " << var_ptr << " = alloc i32\n";
+        
+        if (has_init) {
+            std::string init_val_ir = init_val->dumpIR(tempVarCounter);
+            std::cout << "  store " << init_val_ir << ", " << var_ptr << "\n";
+        }
+        
+        return var_ptr;
+    }
+};
+
+// Complete variable declaration: int x = 1, y = 2;
+class VarDeclAST : public BaseAST {
+public:
+    std::string btype;  // Type (int)
+    std::vector<std::unique_ptr<VarDefAST>> var_defs;  // Variable definitions
+
+    VarDeclAST(std::string type, std::vector<std::unique_ptr<VarDefAST>> defs)
+        : btype(type), var_defs(std::move(defs)) {}
+
+    void Dump(int level = 0) const override {
+        indent(level);
+        std::cout << "VarDecl {\n";
+        indent(level + 1);
+        std::cout << "btype: " << btype << "\n";
+        indent(level + 1);
+        std::cout << "var_defs: [\n";
+        for (const auto& def : var_defs) {
+            def->Dump(level + 2);
+        }
+        indent(level + 1);
+        std::cout << "]\n";
+        indent(level);
+        std::cout << "}\n";
+    }
+
+    //Claude's DumpIR
+    std::string dumpIR(int& tempVarCounter) const override {
+        for (const auto& def : var_defs) {
+            def->dumpIR(tempVarCounter);
+        }
+        return "";
+    }
+};
+
 #endif
