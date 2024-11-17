@@ -50,6 +50,7 @@ using namespace std;
 %type <ast_val> FuncDef FuncType Block Stmt BlockItem BlockItems
 %type <ast_val> Exp UnaryExp PrimaryExp MulExp AddExp
 %type <ast_val> RelExp EqExp LAndExp LOrExp
+%type <ast_val> OptionalExp
 
 %type <str_val> UnaryOp Mulop Addop
 %type <int_val> Number
@@ -96,14 +97,29 @@ Block
   ;
 
 Stmt
-  : RETURN Exp ';' {
-    $$ = new StmtAST("return", unique_ptr<BaseAST>($2));
-  }
-  | LVal '=' Exp ';' {
-    $$ = new StmtAST("assign", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
-  }
-  ;
+    : RETURN OptionalExp ';' {
+        $$ = StmtAST::makeReturn($2);
+    }
+    | LVal '=' Exp ';' {
+        $$ = StmtAST::makeAssign($1, $3);
+    }
+    | OptionalExp ';' {
+        $$ = StmtAST::makeExpression($1);
+    }
+    | Block {
+        $$ = StmtAST::makeBlock($1);
+    }
+    ;
 
+OptionalExp
+    : /* empty */ {
+        $$ = nullptr;
+    }
+    | Exp {
+        $$ = $1;
+    }
+    ;
+    
 Number
   : INT_CONST {
     $$ = $1;

@@ -23,6 +23,36 @@ enum class PrimaryExpType {
   number  // Number : 4
 };
 
+enum class StmtType {
+  Return, // return x
+  Assign, // a = 1
+  Exp,  // 1 + 2
+  Block,  // { xxxxxxx }
+};
+
+// Define Option template class
+template<typename T>
+class Option {
+private:
+    bool has_value;
+    T value;
+
+public:
+    Option() : has_value(false) {}
+    Option(T val) : has_value(true), value(std::move(val)) {}
+
+    bool hasValue() const { return has_value; }
+    const T& getValue() const { 
+        assert(has_value);
+        return value;
+    }
+    T&& takeValue() && {
+        assert(has_value);
+        has_value = false;  // value is gone
+        return std::move(value);
+    }
+};
+
 // 所有 AST 的基类
 class BaseAST {
  public:
@@ -125,67 +155,194 @@ public:
     // }
 };
 
+// Variable Reference AST Node : int a = 1
+//                               return a <--- 
+class LValAST : public BaseAST {
+public:
+    std::string ident;  // variable name 
+
+    // Constructor 
+    LValAST(std::string name) : ident(name) {}
+
+    void Dump(int level = 0) const override {
+        indent(level);
+        std::cout << "LValAST {\n";
+        indent(level + 1);
+        std::cout << "ident: " << ident << "\n";
+        indent(level);
+        std::cout << "}\n";
+    }
+
+    std::string dumpIR(int& tempVarCounter) const override {
+        // 获取变量的值
+        std::string var_ptr = "@" + ident;  // 变量的地址
+        std::string temp_var = "%" + std::to_string(tempVarCounter++);
+        std::cout << "  " << temp_var << " = load " << var_ptr << "\n";
+        return temp_var;
+    }
+};
+
 class StmtAST : public BaseAST {
 public:
-    std::string stmt_type;  // "return" 或 "assign"
-    std::unique_ptr<BaseAST> exp;  // return语句的表达式或赋值语句的右值
-    std::unique_ptr<BaseAST> lval; // 赋值语句的左值(仅在赋值语句中使用)
+    StmtType type;
+    Option<std::unique_ptr<BaseAST>> exp;
+    Option<std::unique_ptr<BaseAST>> lval;
+    Option<std::unique_ptr<BlockAST>> block;
 
-    StmtAST(std::string stmt_type, std::unique_ptr<BaseAST> exp)
-      : stmt_type("return"), exp(std::move(exp)), lval(nullptr) {}
+    // StmtAST can only be constructed by makeXXX
+    explicit StmtAST(StmtType type) : type(type) {}
 
-    StmtAST(std::string stmt_type, std::unique_ptr<BaseAST> lval, std::unique_ptr<BaseAST> exp)
-      : stmt_type("assign"), lval(std::move(lval)), exp(std::move(exp)) {}
+    //Constructor for return
+    static BaseAST* makeReturn(BaseAST* exp = nullptr) {
+        auto stmt = new StmtAST(StmtType::Return);
+        if (exp) stmt->exp = Option(std::unique_ptr<BaseAST>(exp));
+        return stmt;
+    }
+
+    //Constructor for assignment
+    static BaseAST* makeAssign(BaseAST* lval, BaseAST* exp) {
+        auto stmt = new StmtAST(StmtType::Assign);
+        stmt->lval = Option(std::unique_ptr<BaseAST>(lval));
+        stmt->exp = Option(std::unique_ptr<BaseAST>(exp));
+        return stmt;
+    }
+
+    //Constructor for expression
+    static BaseAST* makeExpression(BaseAST* exp = nullptr) {
+        auto stmt = new StmtAST(StmtType::Exp);
+        if (exp) stmt->exp = Option(std::unique_ptr<BaseAST>(exp));
+        return stmt;
+    }
+
+    //Constructor for block
+    static BaseAST* makeBlock(BaseAST* block) {
+        auto stmt = new StmtAST(StmtType::Block);
+        auto block_ast = dynamic_cast<BlockAST*>(block);
+        stmt->block = Option(std::unique_ptr<BlockAST>(block_ast));
+        return stmt;
+    }
 
     void Dump(int level = 0) const override {
         indent(level);
         std::cout << "Stmt {\n";
         indent(level + 1);
-        std::cout << "type: " << stmt_type << "\n";
-        
-        if (stmt_type == "assign") {
-            indent(level + 1);
-            std::cout << "lval: {\n";
-            lval->Dump(level + 2);
-            indent(level + 1);
-            std::cout << "}\n";
+        std::cout << "type: ";
+    
+        switch (type) {
+            case StmtType::Return:
+                std::cout << "return\n";
+                if (exp.hasValue()) {
+                    indent(level + 1);
+                    std::cout << "exp: {\n";
+                    exp.getValue()->Dump(level + 2);
+                    indent(level + 1);
+                    std::cout << "}\n";
+                }
+                break;
+                
+            case StmtType::Assign:
+                std::cout << "assign\n";
+                if (lval.hasValue()) {
+                    indent(level + 1);
+                    std::cout << "lval: {\n";
+                    lval.getValue()->Dump(level + 2);
+                    indent(level + 1);
+                    std::cout << "}\n";
+                }
+                if (exp.hasValue()) {
+                    indent(level + 1);
+                    std::cout << "exp: {\n";
+                    exp.getValue()->Dump(level + 2);
+                    indent(level + 1);
+                    std::cout << "}\n";
+                }
+                break;
+                
+            case StmtType::Exp:
+                std::cout << "expression\n";
+                if (exp.hasValue()) {
+                    indent(level + 1);
+                    std::cout << "exp: {\n";
+                    exp.getValue()->Dump(level + 2);
+                    indent(level + 1);
+                    std::cout << "}\n";
+                }
+                break;
+                
+            case StmtType::Block:
+                std::cout << "block\n";
+                if (block.hasValue()) {
+                    block.getValue()->Dump(level + 1);
+                }
+                break;
         }
-        
-        indent(level + 1);
-        std::cout << "exp: {\n";
-        exp->Dump(level + 2);
-        indent(level + 1);
-        std::cout << "}\n";
         
         indent(level);
         std::cout << "}\n";
     }
 
-    //之前的DumpIR
+    // Claude写的DumpIR
     std::string dumpIR(int& tempVarCounter) const override {
-      if (stmt_type == "return") {
-       //      std::cout<<"here"<<"\n";
-         std::string IRR=exp->dumpIR(tempVarCounter);
-         std::cout <<"  " << "ret " << IRR << "\n";  // 生成返回语句的 IR
-         return "ret";
+        switch (type) {
+            case StmtType::Return: {
+                if (exp.hasValue()) {
+                    // 生成表达式的IR并获取结果
+                    std::string exp_result = exp.getValue()->dumpIR(tempVarCounter);
+                    std::cout << "  ret " << exp_result << "\n";
+                } else {
+                    // 处理空return
+                    std::cout << "  ret 0\n";
+                }
+                return "ret";
+            }
+
+            case StmtType::Assign: {
+                if (lval.hasValue() && exp.hasValue()) {
+                    // 先计算右侧表达式
+                    std::string exp_result = exp.getValue()->dumpIR(tempVarCounter);
+                    
+                    // 获取左值的变量名（假设是LValAST类型）
+                    auto lval_ast = dynamic_cast<const LValAST*>(lval.getValue().get());
+                    if (lval_ast) {
+                        std::string var_ptr = "@" + lval_ast->ident;
+                        // 生成store指令
+                        std::cout << "  store " << exp_result << ", " << var_ptr << "\n";
+                    }
+                }
+                return "";
+            }
+
+            case StmtType::Exp: {
+                if (exp.hasValue()) {
+                    // 只需要生成表达式的IR，不需要存储结果
+                    exp.getValue()->dumpIR(tempVarCounter);
+                }
+                return "";
+            }
+
+            case StmtType::Block: {
+                if (block.hasValue()) {
+                    // 递归生成块中所有语句的IR
+                    return block.getValue()->dumpIR(tempVarCounter);
+                }
+                return "";
+            }
+
+            default:
+                assert(false && "Unknown statement type");
+                return "";
         }
-       return "";
     }
-    //Claude写的DumpIR
+
+    //之前的DumpIR
     // std::string dumpIR(int& tempVarCounter) const override {
-    //     if (stmt_type == "return") {
-    //         std::string exp_result = exp->dumpIR(tempVarCounter);
-    //         std::cout << "  ret " << exp_result << "\n";
-    //         return "ret";
-    //     } 
-    //     else if (stmt_type == "assign") {
-    //         std::string exp_result = exp->dumpIR(tempVarCounter);
-    //         auto lval_ast = dynamic_cast<LValAST*>(lval.get());
-    //         std::string var_ptr = "@" + lval_ast->ident;
-    //         std::cout << "  store " << exp_result << ", " << var_ptr << "\n";
-    //         return "";
+    //   if (type == StmtType::Return) {
+    //    //      std::cout<<"here"<<"\n";
+    //      std::string IRR=exp->dumpIR(tempVarCounter);
+    //      std::cout <<"  " << "ret " << IRR << "\n";  // 生成返回语句的 IR
+    //      return "ret";
     //     }
-    //     return "";
+    //    return "";
     // }
 };
 
@@ -738,33 +895,6 @@ public:
             def->dumpIR(tempVarCounter);
         }
         return "";
-    }
-};
-
-// Variable Reference AST Node : int a = 1
-//                               return a <--- 
-class LValAST : public BaseAST {
-public:
-    std::string ident;  // variable name 
-
-    // Constructor 
-    LValAST(std::string name) : ident(name) {}
-
-    void Dump(int level = 0) const override {
-        indent(level);
-        std::cout << "LValAST {\n";
-        indent(level + 1);
-        std::cout << "ident: " << ident << "\n";
-        indent(level);
-        std::cout << "}\n";
-    }
-
-    std::string dumpIR(int& tempVarCounter) const override {
-        // 获取变量的值
-        std::string var_ptr = "@" + ident;  // 变量的地址
-        std::string temp_var = "%" + std::to_string(tempVarCounter++);
-        std::cout << "  " << temp_var << " = load " << var_ptr << "\n";
-        return temp_var;
     }
 };
 
