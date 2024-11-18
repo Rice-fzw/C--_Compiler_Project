@@ -31,7 +31,7 @@ using namespace std;
 
 //关键字Token
 %token INT RETURN CONST
-%token IF ELSE WHILE
+%token IF ELSE WHILE BREAK CONTINUE
 //比较运算符Token
 %token LE GE EQ NE
 //逻辑运算符Token
@@ -118,6 +118,12 @@ Stmt
     }
     | WHILE '(' Exp ')' Stmt {
     $$ = new WhileStmtAST($3, $5);
+    }
+    | BREAK ';' {
+        $$ = StmtAST::makeBreak();
+    }
+    | CONTINUE ';' {
+        $$ = StmtAST::makeContinue();
     }
     ;
 

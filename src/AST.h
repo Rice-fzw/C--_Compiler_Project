@@ -28,6 +28,8 @@ enum class StmtType {
   Assign, // a = 1
   Exp,  // 1 + 2
   Block,  // { xxxxxxx }
+  Break,  // break
+  Continue, // continue
 };
 
 // Define Option template class
@@ -222,6 +224,16 @@ public:
         return stmt;
     }
 
+    //Constructor for break
+    static BaseAST* makeBreak() {
+        return new StmtAST(StmtType::Break);
+    }
+
+    // Constructor for continue
+    static BaseAST* makeContinue() {
+        return new StmtAST(StmtType::Continue);
+    }
+
     void Dump(int level = 0) const override {
         indent(level);
         std::cout << "Stmt {\n";
@@ -274,6 +286,14 @@ public:
                 if (block.hasValue()) {
                     block.getValue()->Dump(level + 1);
                 }
+                break;
+            
+            case StmtType::Break:
+                std::cout << "break\n";
+                break;
+                
+            case StmtType::Continue:
+                std::cout << "continue\n";
                 break;
         }
         
@@ -328,6 +348,18 @@ public:
                 return "";
             }
 
+            case StmtType::Break: {
+                // 跳转到当前循环的结束标签
+                std::cout << "  jump %while_end_" << symbol_num - 1 << "\n";
+                return "";
+            }
+
+            case StmtType::Continue: {
+                // 跳转到当前循环的条件判断标签
+                std::cout << "  jump %while_entry_" << symbol_num - 1 << "\n";
+                return "";
+            }
+            
             default:
                 assert(false && "Unknown statement type");
                 return "";
