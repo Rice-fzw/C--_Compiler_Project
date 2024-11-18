@@ -31,7 +31,7 @@ using namespace std;
 
 //关键字Token
 %token INT RETURN CONST
-%token IF ELSE
+%token IF ELSE WHILE
 //比较运算符Token
 %token LE GE EQ NE
 //逻辑运算符Token
@@ -115,6 +115,9 @@ Stmt
     }
     | IF '(' Exp ')' Stmt ELSE Stmt {  // if with else
         $$ = new IfStmtAST($3, $5, $7);
+    }
+    | WHILE '(' Exp ')' Stmt {
+    $$ = new WhileStmtAST($3, $5);
     }
     ;
 

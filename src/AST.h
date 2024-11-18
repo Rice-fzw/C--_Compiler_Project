@@ -429,6 +429,64 @@ public:
     }
 };
 
+// WhileStmt for representing while loop
+class WhileStmtAST : public BaseAST {
+public:
+    std::unique_ptr<BaseAST> cond;     // condition
+    std::unique_ptr<BaseAST> body;     // loop body
+
+    // Constructor
+    WhileStmtAST(BaseAST* condition, BaseAST* loop_body) 
+        : cond(std::unique_ptr<BaseAST>(condition)), 
+          body(std::unique_ptr<BaseAST>(loop_body)) {}
+
+    void Dump(int level = 0) const override {
+        indent(level);
+        std::cout << "WhileStmt {\n";
+        
+        indent(level + 1);
+        std::cout << "condition: {\n";
+        cond->Dump(level + 2);
+        indent(level + 1);
+        std::cout << "}\n";
+        
+        indent(level + 1);
+        std::cout << "body: {\n";
+        body->Dump(level + 2);
+        indent(level + 1);
+        std::cout << "}\n";
+        
+        indent(level);
+        std::cout << "}\n";
+    }
+
+    //Claude's DumpIR
+    std::string dumpIR(int& tempVarCounter) const override {
+        // Generate unique labels for the loop
+        std::string entry_label = "%while_entry_" + std::to_string(symbol_num);
+        std::string body_label = "%while_body_" + std::to_string(symbol_num);
+        std::string end_label = "%while_end_" + std::to_string(symbol_num++);
+
+        // Jump to entry block
+        std::cout << "  jump " << entry_label << "\n";
+        
+        // Entry block: evaluate condition
+        std::cout << entry_label << ":\n";
+        std::string cond_result = cond->dumpIR(tempVarCounter);
+        std::cout << "  br " << cond_result << ", " << body_label << ", " << end_label << "\n";
+        
+        // Body block: execute loop body
+        std::cout << body_label << ":\n";
+        body->dumpIR(tempVarCounter);
+        std::cout << "  jump " << entry_label << "\n";
+        
+        // End block
+        std::cout << end_label << ":\n";
+        
+        return "";
+    }
+};
+
 class ExpAST : public BaseAST {
 public:
     std::unique_ptr<BaseAST> l_or_exp;
