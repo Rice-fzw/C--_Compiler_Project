@@ -4,10 +4,10 @@
 #include <memory>
 #include <string>
 #include "AST.h"
+#include "mylexer.h"
 
 using namespace std;
 
-extern FILE *yyin;
 extern int yyparse(unique_ptr<BaseAST> &ast);
 
 int main(int argc, const char *argv[]) {
@@ -16,8 +16,7 @@ int main(int argc, const char *argv[]) {
   auto input = argv[2];
   auto output = argv[4];
 
-  yyin = fopen(input, "r");
-  assert(yyin);
+  lexer = new Mylexer(input);
 
   unique_ptr<BaseAST> ast;
   auto ret = yyparse(ast);
@@ -26,5 +25,6 @@ int main(int argc, const char *argv[]) {
   ast->Dump();
   cout<<endl;
 
+  delete lexer;
   return 0;
 }
