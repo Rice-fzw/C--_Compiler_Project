@@ -58,9 +58,9 @@ using namespace std;
 
 %type <str_val> UnaryOp Mulop Addop
 %type <int_val> Number
-%type <ast_val> ConstDecl ConstDef ConstDefList ConstInitVal Decl ConstExp LVal
+%type <ast_val> ConstDecl ConstDef ConstDefList ConstInitVal Decl ConstExp
 %type <ast_val> VarDecl VarDefList VarDef InitVal
-%type <str_val> BType
+%type <str_val> BType LVal
 
 
 %%
@@ -237,7 +237,7 @@ PrimaryExp
   $$ = new PrimaryExpAST($1);
 }
 | LVal {
-  $$ = new PrimaryExpAST(unique_ptr<BaseAST>($1), true); 
+  $$ = new PrimaryExpAST($1, true); 
 }
 
 UnaryOp
@@ -348,7 +348,7 @@ ConstExp
 
 LVal
   : IDENT {
-    $$ = new LValAST(*$1);
+    $$ = $1;
   }
   ;
 
