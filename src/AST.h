@@ -346,6 +346,89 @@ public:
     // }
 };
 
+// IfStmt for representing if-else
+class IfStmtAST : public BaseAST {
+public:
+    std::unique_ptr<BaseAST> cond;    // condition
+    std::unique_ptr<BaseAST> then_stmt; // if branch
+    Option<std::unique_ptr<BaseAST>> else_stmt; // else branch (option)
+
+    // Constructor for if without else
+    IfStmtAST(BaseAST* cond, BaseAST* then_stmt) 
+        : cond(std::unique_ptr<BaseAST>(cond)), 
+          then_stmt(std::unique_ptr<BaseAST>(then_stmt)) {}
+
+    // Constructor for if-else
+    IfStmtAST(BaseAST* cond, BaseAST* then_stmt, BaseAST* else_stmt)
+        : cond(std::unique_ptr<BaseAST>(cond)), 
+          then_stmt(std::unique_ptr<BaseAST>(then_stmt)),
+          else_stmt(Option(std::unique_ptr<BaseAST>(else_stmt))) {}
+
+    void Dump(int level = 0) const override {
+        indent(level);
+        std::cout << "IfStmt {\n";
+        
+        indent(level + 1);
+        std::cout << "cond: {\n";
+        cond->Dump(level + 2);
+        indent(level + 1);
+        std::cout << "}\n";
+        
+        indent(level + 1);
+        std::cout << "if branch: {\n";
+        then_stmt->Dump(level + 2);
+        indent(level + 1);
+        std::cout << "}\n";
+
+        if (else_stmt.hasValue()) {
+            indent(level + 1);
+            std::cout << "else branch: {\n";
+            else_stmt.getValue()->Dump(level + 2);
+            indent(level + 1);
+            std::cout << "}\n";
+        }
+        
+        indent(level);
+        std::cout << "}\n";
+    }
+
+    //Claude's DumpIR
+    std::string dumpIR(int& tempVarCounter) const override {
+        // 生成条件判断的代码
+        std::string cond_result = cond->dumpIR(tempVarCounter);
+        
+        // 生成唯一的标签
+        std::string then_label = "%then_" + std::to_string(symbol_num);
+        std::string else_label = "%else_" + std::to_string(symbol_num);
+        std::string end_label = "%end_" + std::to_string(symbol_num++);
+
+        // 条件跳转
+        std::cout << "  br " << cond_result << ", " << then_label << ", ";
+        if (else_stmt.hasValue()) {
+            std::cout << else_label << "\n";
+        } else {
+            std::cout << end_label << "\n";
+        }
+
+        // then分支
+        std::cout << then_label << ":\n";
+        then_stmt->dumpIR(tempVarCounter);
+        std::cout << "  jump " << end_label << "\n";
+
+        // else分支(如果存在)
+        if (else_stmt.hasValue()) {
+            std::cout << else_label << ":\n";
+            else_stmt.getValue()->dumpIR(tempVarCounter);
+            std::cout << "  jump " << end_label << "\n";
+        }
+
+        // 结束标签
+        std::cout << end_label << ":\n";
+        
+        return "";
+    }
+};
+
 class ExpAST : public BaseAST {
 public:
     std::unique_ptr<BaseAST> l_or_exp;

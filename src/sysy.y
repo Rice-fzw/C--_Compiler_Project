@@ -31,6 +31,7 @@ using namespace std;
 
 //关键字Token
 %token INT RETURN CONST
+%token IF ELSE
 //比较运算符Token
 %token LE GE EQ NE
 //逻辑运算符Token
@@ -108,6 +109,12 @@ Stmt
     }
     | Block {
         $$ = StmtAST::makeBlock($1);
+    }
+    | IF '(' Exp ')' Stmt {  // if without else
+        $$ = new IfStmtAST($3, $5);
+    }
+    | IF '(' Exp ')' Stmt ELSE Stmt {  // if with else
+        $$ = new IfStmtAST($3, $5, $7);
     }
     ;
 
