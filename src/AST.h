@@ -9,11 +9,12 @@
 #include <vector>
 #include <map>
 
-static int symbol_num = 0;
-
+static int if_num = 0;
+static int while_num = 0;
 static std::map<std::string, std::string> chk;
+static std::map<std::string, int> var_num;
 
-// 辅助函数：打印缩进
+// Auxiliary function: Print indentation
 inline void indent(int level) {
   for (int i = 0; i < level; ++i) {
     std::cout << "  ";
@@ -58,16 +59,16 @@ public:
     }
 };
 
-// 所有 AST 的基类
+// All basis AST
 class BaseAST {
- public:
+public:
   virtual ~BaseAST() = default;
   virtual void Dump(int level = 0) const = 0;
-  virtual std::string dumpIR(int& tempVarCounter) const = 0;  // 修改为带临时变量计数器的IR方法
+  virtual std::string dumpIR(int& tempVarCounter) const = 0;  // Modify to IR method with temporary variable counter
 };
 
 class CompUnitAST : public BaseAST {
- public:
+public:
   std::unique_ptr<BaseAST> func_def;
 
   void Dump(int level = 0) const override {
@@ -84,7 +85,7 @@ class CompUnitAST : public BaseAST {
 };
 
 class FuncDefAST : public BaseAST {
- public:
+public:
   std::unique_ptr<BaseAST> func_type;
   std::string ident;
   std::unique_ptr<BaseAST> block;
@@ -101,24 +102,25 @@ class FuncDefAST : public BaseAST {
   }
 
   std::string dumpIR(int& tempVarCounter) const override {
-    // 输出函数定义的 IR 代码
+    // Output the IR code defined by the function
     std::cout << "fun @" << ident << "()";
     if (func_type->dumpIR(tempVarCounter) == "int") {
       std::cout << ": i32 ";
     }
-    std::cout << "{\n";    // 函数体开始
+    std::cout << "{\n";
     std::cout << "%entry:\n";
-    std::string block_ir = block->dumpIR(tempVarCounter);  // 获取 block 的 IR 表达
+    // Obtain the IR expression of the block
+    std::string block_ir = block->dumpIR(tempVarCounter); 
     if (block_ir != "ret") {
-      std::cout << "  ret 0\n";  // 默认返回0
+      std::cout << "  ret 0\n";  // Default return 0
     }
-    std::cout << "}\n";          // 函数体结束
+    std::cout << "}\n";
     return "";
   }
 };
 
 class FuncTypeAST : public BaseAST {
- public:
+public:
   std::string type;
 
   void Dump(int level = 0) const override {
@@ -127,7 +129,7 @@ class FuncTypeAST : public BaseAST {
   }
 
   std::string dumpIR(int& tempVarCounter) const override {
-    return type;  // 返回类型信息，比如 "int" 或 "void"
+    return type;  // Return type information, such as' int 'or' void '
   }
 };
 
@@ -149,13 +151,11 @@ public:
         std::string last_result;
         for (const auto& item : items) {
             last_result = item->dumpIR(tempVarCounter);
+            if(last_result == "ret" || last_result == "break" || last_result == "cont") break;
         }
         return last_result;
     }
 
-    // std::string dumpIR(int& tempVarCounter) const override {
-    // return stmt->dumpIR(tempVarCounter);  // 返回语句的 IR 表达
-    // }
 };
 
 // Variable Reference AST Node : int a = 1
@@ -177,10 +177,11 @@ public:
     }
 
     std::string dumpIR(int& tempVarCounter) const override {
-        // 获取变量的值
+        // obatain the value of variable
         if (chk.find(ident) == chk.end()){
         //  std::cout<< chk[ident] << " " << ident << std::endl;
-          std::string var_ptr = "@" + ident;  // 变量的地址
+          std::string var_ptr = "@" + ident;  // address of variable
+          std::string var_nam=var_ptr + "_" + std::to_string(var_num[var_ptr]++);
           std::string temp_var = "%" + std::to_string(tempVarCounter++);
           std::cout << "  " << temp_var << " = load " << var_ptr << "\n";
           return temp_var;
@@ -311,11 +312,11 @@ public:
         switch (type) {
             case StmtType::Return: {
                 if (exp.hasValue()) {
-                    // 生成表达式的IR并获取结果
+                    // Generate the IR of the expression and obtain the result
                     std::string exp_result = exp.getValue()->dumpIR(tempVarCounter);
                     std::cout << "  ret " << exp_result << "\n";
                 } else {
-                    // 处理空return
+                    // handle empty return
                     std::cout << "  ret 0\n";
                 }
                 return "ret";
@@ -323,12 +324,10 @@ public:
 
             case StmtType::Assign: {
                 if (lval.hasValue() && exp.hasValue()) {
-                    // 先计算右侧表达式
                     std::string exp_result = exp.getValue()->dumpIR(tempVarCounter);
                     
-                    // 获取左值的变量名（假设是LValAST类型）
                     std::string var_ptr = "@" + lval.getValue();
-                    // 生成store指令
+                    std::string var_nam=var_ptr + "_" + std::to_string(var_num[var_ptr]);
                     std::cout << "  store " << exp_result << ", " << var_ptr << "\n";
                 }
                 return "";
@@ -336,7 +335,7 @@ public:
 
             case StmtType::Exp: {
                 if (exp.hasValue()) {
-                    // 只需要生成表达式的IR，不需要存储结果
+                    // Just need to generate the IR of the expression, no need to store the result
                     exp.getValue()->dumpIR(tempVarCounter);
                 }
                 return "";
@@ -344,22 +343,22 @@ public:
 
             case StmtType::Block: {
                 if (block.hasValue()) {
-                    // 递归生成块中所有语句的IR
+                    // Recursive generation of IR for all statements in the block
                     return block.getValue()->dumpIR(tempVarCounter);
                 }
                 return "";
             }
 
             case StmtType::Break: {
-                // 跳转到当前循环的结束标签
-                std::cout << "  jump %while_end_" << symbol_num - 1 << "\n";
-                return "";
+                // Jump to the end tag of the current loop
+                std::cout << "  jump %while_end_" << while_num - 1 << "\n";
+                return "break";
             }
 
             case StmtType::Continue: {
-                // 跳转到当前循环的条件判断标签
-                std::cout << "  jump %while_entry_" << symbol_num - 1 << "\n";
-                return "";
+                // Jump to the conditional judgment label of the current loop
+                std::cout << "  jump %while_entry_" << while_num - 1 << "\n";
+                return "cont";
             }
             
             default:
@@ -367,17 +366,6 @@ public:
                 return "";
         }
     }
-
-    //之前的DumpIR
-    // std::string dumpIR(int& tempVarCounter) const override {
-    //   if (type == StmtType::Return) {
-    //    //      std::cout<<"here"<<"\n";
-    //      std::string IRR=exp->dumpIR(tempVarCounter);
-    //      std::cout <<"  " << "ret " << IRR << "\n";  // 生成返回语句的 IR
-    //      return "ret";
-    //     }
-    //    return "";
-    // }
 };
 
 // IfStmt for representing if-else
@@ -427,15 +415,15 @@ public:
     }
 
     std::string dumpIR(int& tempVarCounter) const override {
-        // 生成条件判断的代码
+        // Generate code for conditional judgment
         std::string cond_result = cond->dumpIR(tempVarCounter);
         
-        // 生成唯一的标签
-        std::string then_label = "%then_" + std::to_string(symbol_num);
-        std::string else_label = "%else_" + std::to_string(symbol_num);
-        std::string end_label = "%end_" + std::to_string(symbol_num++);
+        // create the sign
+        std::string then_label = "%then_" + std::to_string(if_num);
+        std::string else_label = "%else_" + std::to_string(if_num);
+        std::string end_label = "%end_" + std::to_string(if_num++);
 
-        // 条件跳转
+        // check whether having "else"
         std::cout << "  br " << cond_result << ", " << then_label << ", ";
         if (else_stmt.hasValue()) {
             std::cout << else_label << "\n";
@@ -443,21 +431,24 @@ public:
             std::cout << end_label << "\n";
         }
 
-        // then分支
+        // then branches
         std::cout << then_label << ":\n";
-        then_stmt->dumpIR(tempVarCounter);
-        std::cout << "  jump " << end_label << "\n";
-
-        // else分支(如果存在)
+        std::string not_if = then_stmt->dumpIR(tempVarCounter);
+        if (not_if != "ret" && not_if != "break" && not_if != "cont") {
+          std::cout << "  jump " << end_label << "\n";
+        }
+        std::string not_else = "";
+        // else branches(if exits)
         if (else_stmt.hasValue()) {
             std::cout << else_label << ":\n";
-            else_stmt.getValue()->dumpIR(tempVarCounter);
-            std::cout << "  jump " << end_label << "\n";
+            not_else = else_stmt.getValue()->dumpIR(tempVarCounter);
+            if (not_else != "ret" && not_else != "break" &&
+                not_else != "cont")
+                std::cout << "\tjump " << end_label << std::endl;
+            if((not_if == "ret" || not_if == "break" || not_if == "cont" ) && 
+              (not_else == "ret" || not_else == "break" || not_else == "cont")) return "ret";
         }
-
-        // 结束标签
         std::cout << end_label << ":\n";
-        
         return "";
     }
 };
@@ -495,9 +486,9 @@ public:
 
     std::string dumpIR(int& tempVarCounter) const override {
         // Generate unique labels for the loop
-        std::string entry_label = "%while_entry_" + std::to_string(symbol_num);
-        std::string body_label = "%while_body_" + std::to_string(symbol_num);
-        std::string end_label = "%while_end_" + std::to_string(symbol_num++);
+        std::string entry_label = "%while_entry_" + std::to_string(while_num);
+        std::string body_label = "%while_body_" + std::to_string(while_num);
+        std::string end_label = "%while_end_" + std::to_string(while_num++);
 
         // Jump to entry block
         std::cout << "  jump " << entry_label << "\n";
@@ -509,8 +500,9 @@ public:
         
         // Body block: execute loop body
         std::cout << body_label << ":\n";
-        body->dumpIR(tempVarCounter);
-        std::cout << "  jump " << entry_label << "\n";
+        std::string not_ret = body->dumpIR(tempVarCounter);
+        if (not_ret != "ret" && not_ret != "break" && not_ret != "cont")
+            std::cout << "  jump " << entry_label << "\n";
         
         // End block
         std::cout << end_label << ":\n";
@@ -574,7 +566,6 @@ class PrimaryExpAST : public BaseAST {
     std::cout << "}\n";
   }
 
-  //新生成的DumpIR
   std::string dumpIR(int& tempVarCounter) const override {
   if (type == PrimaryExpType::number) {
     return std::to_string(number);
@@ -583,7 +574,8 @@ class PrimaryExpAST : public BaseAST {
   } else if (type == PrimaryExpType::LVal) {
     if (chk.find(LVal) == chk.end()){
       //    std::cout<< chk[LVal] << " " << LVal << std::endl;
-          std::string var_ptr = "@" + LVal;  // 变量的地址
+          std::string var_ptr = "@" + LVal;  // variable's address
+          std::string var_nam=var_ptr + "_" + std::to_string(var_num[var_ptr]++);
           std::string temp_var = "%" + std::to_string(tempVarCounter++);
           std::cout << "  " << temp_var << " = load " << var_ptr << "\n";
           return temp_var;
@@ -591,24 +583,10 @@ class PrimaryExpAST : public BaseAST {
     return chk[LVal];
   }
   return "";
-} 
-
-    //之前的DumpIR
-//   std::string dumpIR(int& tempVarCounter) const override {
-// //    std::cout<<"here"<<"\n";
-//     if (type == PrimaryExpType::number) {
-// //      std::cout<<"ret"<<" ";
-//       return std::to_string(number);
-//     } else if (type == PrimaryExpType::exp) {
-//     //  std::string u=exp->dumpIR(tempVarCounter);
-//     //  std::cout << "!!!!\n"<<"\n";
-//       return exp->dumpIR(tempVarCounter);  // 如果是表达式，递归调用其 `dumpIR`
-//     }
-//     return "";
-//   } 
+}
 };
 
-// UnaryExp 处理 +, -, !
+// UnaryExp handel +, -, !
 class UnaryExpAST : public BaseAST {
  public:
   std::string op;
@@ -638,7 +616,7 @@ class UnaryExpAST : public BaseAST {
   }
 };
 
-// AddExp 处理 +, -
+// AddExp handel +, -
 class AddExpAST : public BaseAST {
  public:
   std::string op;
@@ -694,7 +672,7 @@ class AddExpAST : public BaseAST {
   }
 };
 
-// MulExp 处理 *, /, %
+// MulExp handle *, /, %
 class MulExpAST : public BaseAST {
  public:
   std::string op;
@@ -752,7 +730,7 @@ class MulExpAST : public BaseAST {
   }
 };
 
-// RelExpAST  处理 <, >, <=, >=
+// RelExpAST handle <, >, <=, >=
 class RelExpAST : public BaseAST {
  public:
   std::string op;
@@ -812,7 +790,7 @@ class RelExpAST : public BaseAST {
   }
 };
 
-// EqExpAST 处理 ==, !=
+// EqExpAST handle ==, !=
 class EqExpAST : public BaseAST {
  public:
   std::string op;
@@ -865,7 +843,7 @@ class EqExpAST : public BaseAST {
   }
 };
 
-// LAndExpAST 处理 && *still have some problem
+// LAndExpAST handle &&
 class LAndExpAST : public BaseAST {
  public:
   std::string op = "&&";
@@ -909,9 +887,9 @@ class LAndExpAST : public BaseAST {
       // Left and right operands exist, generate code for logical AND (&&)
       std::string left_result = left_AST->dumpIR(tempVarCounter);
       // Generate unique labels for control flow
-      std::string then_label = "%then__" + std::to_string(symbol_num);
-      std::string else_label = "%else__" + std::to_string(symbol_num);
-      std::string end_label = "%end__" + std::to_string(symbol_num++);
+      std::string then_label = "%then__" + std::to_string(if_num);
+      std::string else_label = "%else__" + std::to_string(if_num);
+      std::string end_label = "%end__" + std::to_string(if_num++);
       std::string result_var_ptr = "%" + std::to_string(tempVarCounter++);
       // Allocate memory for the result of the logical AND
       std::cout << "  " << result_var_ptr << " = alloc i32" << std::endl;
@@ -943,7 +921,7 @@ class LAndExpAST : public BaseAST {
   }
 };
 
-// LOrExpAST 处理 || *still have some problem
+// LOrExpAST handle ||
 class LOrExpAST : public BaseAST {
  public:
   std::string op = "||";
@@ -989,9 +967,9 @@ class LOrExpAST : public BaseAST {
       // First, get the IR for the left operand
       std::string left_result = left_AST->dumpIR(tempVarCounter);
       // Generate unique labels for control flow
-      std::string then_label = "%then__" + std::to_string(symbol_num);
-      std::string else_label = "%else__" + std::to_string(symbol_num);
-      std::string end_label = "%end__" + std::to_string(symbol_num++);
+      std::string then_label = "%then__" + std::to_string(if_num);
+      std::string else_label = "%else__" + std::to_string(if_num);
+      std::string end_label = "%end__" + std::to_string(if_num++);
       std::string result_var_ptr = "%" + std::to_string(tempVarCounter++);
 
       // Allocate memory for storing the result of the logical OR
@@ -1052,9 +1030,6 @@ public:
     std::string dumpIR(int& tempVarCounter) const override {
         std::string init_val_ir = init_val->dumpIR(tempVarCounter);
         chk[ident] = init_val_ir;
-        // 为常量分配全局变量名
-      //  std::string constName = "@" + ident;
-       // std::cout << "  " << constName << " = alloc i32, " << init_val_ir << "\n";
         return init_val_ir;
     }
 };
@@ -1127,6 +1102,7 @@ public:
 
     std::string dumpIR(int& tempVarCounter) const override {
         std::string var_ptr = "@" + ident;
+        std::string var_nam=var_ptr + "_" + std::to_string(var_num[var_ptr]);
         std::cout << "  " << var_ptr << " = alloc i32\n";
         
         if (has_init) {

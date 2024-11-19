@@ -128,7 +128,7 @@ int Mylexer::IsdualSign(){
 
 int Mylexer::IsDual(){
 
-    int LEGENE[3][2]={{1,LE},{2,GE},{5,NE}};
+    int LEGENE[3][2]={{1,GE},{2,LE},{5,NE}};
 
     for (int i = 0; i < 3; i++){
         if(IsdualSign()==DualTable[LEGENE[i][0]]){
