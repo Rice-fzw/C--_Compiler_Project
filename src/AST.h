@@ -7,8 +7,11 @@
 #include <sstream>
 #include <cassert>
 #include <vector>
+#include <map>
 
 static int symbol_num = 0;
+
+static std::map<std::string, std::string> chk;
 
 // 辅助函数：打印缩进
 inline void indent(int level) {
@@ -142,7 +145,6 @@ public:
         std::cout << "}\n";
     }
 
-    //Claude写的DumpIR
     std::string dumpIR(int& tempVarCounter) const override {
         std::string last_result;
         for (const auto& item : items) {
@@ -151,7 +153,6 @@ public:
         return last_result;
     }
 
-    //之前的DumpIR
     // std::string dumpIR(int& tempVarCounter) const override {
     // return stmt->dumpIR(tempVarCounter);  // 返回语句的 IR 表达
     // }
@@ -177,10 +178,14 @@ public:
 
     std::string dumpIR(int& tempVarCounter) const override {
         // 获取变量的值
-        std::string var_ptr = "@" + ident;  // 变量的地址
-        std::string temp_var = "%" + std::to_string(tempVarCounter++);
-        std::cout << "  " << temp_var << " = load " << var_ptr << "\n";
-        return temp_var;
+        if (chk.find(ident) == chk.end()){
+        //  std::cout<< chk[ident] << " " << ident << std::endl;
+          std::string var_ptr = "@" + ident;  // 变量的地址
+          std::string temp_var = "%" + std::to_string(tempVarCounter++);
+          std::cout << "  " << temp_var << " = load " << var_ptr << "\n";
+          return temp_var;
+        }
+        return chk[ident];
     }
 };
 
@@ -188,7 +193,7 @@ class StmtAST : public BaseAST {
 public:
     StmtType type;
     Option<std::unique_ptr<BaseAST>> exp;
-    Option<std::unique_ptr<BaseAST>> lval;
+    Option<std::string> lval;
     Option<std::unique_ptr<BlockAST>> block;
 
     // StmtAST can only be constructed by makeXXX
@@ -202,9 +207,9 @@ public:
     }
 
     //Constructor for assignment
-    static BaseAST* makeAssign(BaseAST* lval, BaseAST* exp) {
+    static BaseAST* makeAssign(std::string* lval, BaseAST* exp) {
         auto stmt = new StmtAST(StmtType::Assign);
-        stmt->lval = Option(std::unique_ptr<BaseAST>(lval));
+        stmt->lval = Option<std::string>(*lval);
         stmt->exp = Option(std::unique_ptr<BaseAST>(exp));
         return stmt;
     }
@@ -257,7 +262,8 @@ public:
                 if (lval.hasValue()) {
                     indent(level + 1);
                     std::cout << "lval: {\n";
-                    lval.getValue()->Dump(level + 2);
+                    indent(level + 2);
+                    std::cout << "ident: " << lval.getValue() << "\n";
                     indent(level + 1);
                     std::cout << "}\n";
                 }
@@ -301,7 +307,6 @@ public:
         std::cout << "}\n";
     }
 
-    // Claude写的DumpIR
     std::string dumpIR(int& tempVarCounter) const override {
         switch (type) {
             case StmtType::Return: {
@@ -322,12 +327,9 @@ public:
                     std::string exp_result = exp.getValue()->dumpIR(tempVarCounter);
                     
                     // 获取左值的变量名（假设是LValAST类型）
-                    auto lval_ast = dynamic_cast<const LValAST*>(lval.getValue().get());
-                    if (lval_ast) {
-                        std::string var_ptr = "@" + lval_ast->ident;
-                        // 生成store指令
-                        std::cout << "  store " << exp_result << ", " << var_ptr << "\n";
-                    }
+                    std::string var_ptr = "@" + lval.getValue();
+                    // 生成store指令
+                    std::cout << "  store " << exp_result << ", " << var_ptr << "\n";
                 }
                 return "";
             }
@@ -424,7 +426,6 @@ public:
         std::cout << "}\n";
     }
 
-    //Claude's DumpIR
     std::string dumpIR(int& tempVarCounter) const override {
         // 生成条件判断的代码
         std::string cond_result = cond->dumpIR(tempVarCounter);
@@ -492,7 +493,6 @@ public:
         std::cout << "}\n";
     }
 
-    //Claude's DumpIR
     std::string dumpIR(int& tempVarCounter) const override {
         // Generate unique labels for the loop
         std::string entry_label = "%while_entry_" + std::to_string(symbol_num);
@@ -540,13 +540,13 @@ class PrimaryExpAST : public BaseAST {
   PrimaryExpType type;
   std::unique_ptr<BaseAST> exp;
   int number;
-  std::unique_ptr<BaseAST> LVal;
+  std::string LVal;
 
   PrimaryExpAST(int val) : type(PrimaryExpType::number), number(val), exp(nullptr) {}
   PrimaryExpAST(std::unique_ptr<BaseAST> e)
     : type(PrimaryExpType::exp), number(0), exp(std::move(e)) {}
-  PrimaryExpAST(std::unique_ptr<BaseAST> l, bool isLVal) 
-    : type(PrimaryExpType::LVal), LVal(std::move(l)), number(0), exp(nullptr) {}
+  PrimaryExpAST(std::string* l, bool isLVal) 
+    : type(PrimaryExpType::LVal), LVal(*l), number(0), exp(nullptr) {}
 
   void Dump(int level = 0) const override {
     indent(level);
@@ -564,7 +564,8 @@ class PrimaryExpAST : public BaseAST {
         break;
       case PrimaryExpType::LVal:
         std::cout << "LVal: {\n";
-        LVal->Dump(level + 2);
+        indent(level + 2);
+        std::cout << "ident: " << LVal << "\n";
         indent(level + 1);
         std::cout << "}\n";
         break;
@@ -573,18 +574,38 @@ class PrimaryExpAST : public BaseAST {
     std::cout << "}\n";
   }
 
+  //新生成的DumpIR
   std::string dumpIR(int& tempVarCounter) const override {
-//    std::cout<<"here"<<"\n";
-    if (type == PrimaryExpType::number) {
-//      std::cout<<"ret"<<" ";
-      return std::to_string(number);
-    } else if (type == PrimaryExpType::exp) {
-    //  std::string u=exp->dumpIR(tempVarCounter);
-    //  std::cout << "!!!!\n"<<"\n";
-      return exp->dumpIR(tempVarCounter);  // 如果是表达式，递归调用其 `dumpIR`
+  if (type == PrimaryExpType::number) {
+    return std::to_string(number);
+  } else if (type == PrimaryExpType::exp) {
+    return exp->dumpIR(tempVarCounter);
+  } else if (type == PrimaryExpType::LVal) {
+    if (chk.find(LVal) == chk.end()){
+      //    std::cout<< chk[LVal] << " " << LVal << std::endl;
+          std::string var_ptr = "@" + LVal;  // 变量的地址
+          std::string temp_var = "%" + std::to_string(tempVarCounter++);
+          std::cout << "  " << temp_var << " = load " << var_ptr << "\n";
+          return temp_var;
     }
-    return "";
-  } 
+    return chk[LVal];
+  }
+  return "";
+} 
+
+    //之前的DumpIR
+//   std::string dumpIR(int& tempVarCounter) const override {
+// //    std::cout<<"here"<<"\n";
+//     if (type == PrimaryExpType::number) {
+// //      std::cout<<"ret"<<" ";
+//       return std::to_string(number);
+//     } else if (type == PrimaryExpType::exp) {
+//     //  std::string u=exp->dumpIR(tempVarCounter);
+//     //  std::cout << "!!!!\n"<<"\n";
+//       return exp->dumpIR(tempVarCounter);  // 如果是表达式，递归调用其 `dumpIR`
+//     }
+//     return "";
+//   } 
 };
 
 // UnaryExp 处理 +, -, !
@@ -1030,10 +1051,11 @@ public:
 
     std::string dumpIR(int& tempVarCounter) const override {
         std::string init_val_ir = init_val->dumpIR(tempVarCounter);
+        chk[ident] = init_val_ir;
         // 为常量分配全局变量名
-        std::string constName = "@" + ident;
-        std::cout << "global " << constName << " = alloc i32, " << init_val_ir << "\n";
-        return constName;
+      //  std::string constName = "@" + ident;
+       // std::cout << "  " << constName << " = alloc i32, " << init_val_ir << "\n";
+        return init_val_ir;
     }
 };
 
@@ -1103,7 +1125,6 @@ public:
         std::cout << "}\n";
     }
 
-    //Claude's DumpIR
     std::string dumpIR(int& tempVarCounter) const override {
         std::string var_ptr = "@" + ident;
         std::cout << "  " << var_ptr << " = alloc i32\n";
@@ -1142,7 +1163,7 @@ public:
         std::cout << "}\n";
     }
 
-    //Claude's DumpIR
+
     std::string dumpIR(int& tempVarCounter) const override {
         for (const auto& def : var_defs) {
             def->dumpIR(tempVarCounter);

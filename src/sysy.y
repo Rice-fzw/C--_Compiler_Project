@@ -4,6 +4,7 @@
   #include <iostream>
   #include <vector>
   #include "AST.h"
+  #include "mylexer.h"
 }
 
 %{
@@ -12,10 +13,12 @@
 #include <iostream>
 #include <vector>
 #include "AST.h"
+#include "mylexer.h"
 
 // 声明 lexer 函数和错误处理函数
 int yylex();
 void yyerror(std::unique_ptr<BaseAST> &ast, const char *s);
+extern YYSTYPE yylval;
 
 using namespace std;
 
@@ -55,9 +58,9 @@ using namespace std;
 
 %type <str_val> UnaryOp Mulop Addop
 %type <int_val> Number
-%type <ast_val> ConstDecl ConstDef ConstDefList ConstInitVal Decl ConstExp LVal
+%type <ast_val> ConstDecl ConstDef ConstDefList ConstInitVal Decl ConstExp
 %type <ast_val> VarDecl VarDefList VarDef InitVal
-%type <str_val> BType
+%type <str_val> BType LVal
 
 
 %%
@@ -234,7 +237,7 @@ PrimaryExp
   $$ = new PrimaryExpAST($1);
 }
 | LVal {
-  $$ = new PrimaryExpAST(unique_ptr<BaseAST>($1), true); 
+  $$ = new PrimaryExpAST($1, true); 
 }
 
 UnaryOp
@@ -345,7 +348,7 @@ ConstExp
 
 LVal
   : IDENT {
-    $$ = new LValAST(*$1);
+    $$ = $1;
   }
   ;
 
