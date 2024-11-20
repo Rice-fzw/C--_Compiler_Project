@@ -6,10 +6,6 @@
 #include <iostream>
 #include <sstream>
 #include <cassert>
-<<<<<<< HEAD
-
-// 辅助函数：打印缩进
-=======
 #include <vector>
 #include <map>
 
@@ -19,7 +15,6 @@ static std::map<std::string, std::string> chk;
 static std::map<std::string, int> var_num;
 
 // Auxiliary function: Print indentation
->>>>>>> IR-Generation
 inline void indent(int level) {
   for (int i = 0; i < level; ++i) {
     std::cout << "  ";
@@ -69,11 +64,7 @@ class BaseAST {
 public:
   virtual ~BaseAST() = default;
   virtual void Dump(int level = 0) const = 0;
-<<<<<<< HEAD
-  virtual std::string dumpIR(int& tempVarCounter) const = 0;  // 修改为带临时变量计数器的IR方法
-=======
   virtual std::string dumpIR(int& tempVarCounter) const = 0;  // Modify to IR method with temporary variable counter
->>>>>>> IR-Generation
 };
 
 class CompUnitAST : public BaseAST {
@@ -111,24 +102,11 @@ public:
   }
 
   std::string dumpIR(int& tempVarCounter) const override {
-<<<<<<< HEAD
-    // 输出函数定义的 IR 代码
-=======
     // Output the IR code defined by the function
->>>>>>> IR-Generation
     std::cout << "fun @" << ident << "()";
     if (func_type->dumpIR(tempVarCounter) == "int") {
       std::cout << ": i32 ";
     }
-<<<<<<< HEAD
-    std::cout << "{\n";    // 函数体开始
-    std::cout << "%entry:\n";
-    std::string block_ir = block->dumpIR(tempVarCounter);  // 获取 block 的 IR 表达
-    if (block_ir != "ret") {
-      std::cout << "  ret 0\n";  // 默认返回0
-    }
-    std::cout << "}\n";          // 函数体结束
-=======
     std::cout << "{\n";
     std::cout << "%entry:\n";
     // Obtain the IR expression of the block
@@ -137,17 +115,12 @@ public:
       std::cout << "  ret 0\n";  // Default return 0
     }
     std::cout << "}\n";
->>>>>>> IR-Generation
     return "";
   }
 };
 
 class FuncTypeAST : public BaseAST {
-<<<<<<< HEAD
- public:
-=======
 public:
->>>>>>> IR-Generation
   std::string type;
 
   void Dump(int level = 0) const override {
@@ -156,57 +129,11 @@ public:
   }
 
   std::string dumpIR(int& tempVarCounter) const override {
-<<<<<<< HEAD
-    return type;  // 返回类型信息，比如 "int" 或 "void"
-=======
     return type;  // Return type information, such as' int 'or' void '
->>>>>>> IR-Generation
   }
 };
 
 class BlockAST : public BaseAST {
-<<<<<<< HEAD
- public:
-  std::unique_ptr<BaseAST> stmt;
-
-  void Dump(int level = 0) const override {
-    indent(level);
-    std::cout << "Block {\n";
-    stmt->Dump(level + 1);
-    indent(level);
-    std::cout << "}\n";
-  }
-
-  std::string dumpIR(int& tempVarCounter) const override {
-    return stmt->dumpIR(tempVarCounter);  // 返回语句的 IR 表达
-  }
-};
-
-class StmtAST : public BaseAST {
- public:
-  std::string stmt_type;
-  std::unique_ptr<BaseAST> exp;
-
-  void Dump(int level = 0) const override {
-    indent(level);
-    std::cout << "Stmt {\n";
-    indent(level + 1);
-    std::cout << "type: " << stmt_type << "\n";
-    exp->Dump(level + 1);
-    indent(level);
-    std::cout << "}\n";
-  }
-
-  std::string dumpIR(int& tempVarCounter) const override {
-    if (stmt_type == "return") {
-//      std::cout<<"here"<<"\n";
-      std::string IRR=exp->dumpIR(tempVarCounter);
-      std::cout <<"  " << "ret " << IRR << "\n";  // 生成返回语句的 IR
-      return "ret";
-    }
-    return "";
-  }
-=======
 public:
     std::vector<std::unique_ptr<BaseAST>> items;
 
@@ -582,7 +509,6 @@ public:
         
         return "";
     }
->>>>>>> IR-Generation
 };
 
 class ExpAST : public BaseAST {
@@ -606,19 +532,13 @@ class PrimaryExpAST : public BaseAST {
   PrimaryExpType type;
   std::unique_ptr<BaseAST> exp;
   int number;
-<<<<<<< HEAD
-=======
   std::string LVal;
->>>>>>> IR-Generation
 
   PrimaryExpAST(int val) : type(PrimaryExpType::number), number(val), exp(nullptr) {}
   PrimaryExpAST(std::unique_ptr<BaseAST> e)
     : type(PrimaryExpType::exp), number(0), exp(std::move(e)) {}
-<<<<<<< HEAD
-=======
   PrimaryExpAST(std::string* l, bool isLVal) 
     : type(PrimaryExpType::LVal), LVal(*l), number(0), exp(nullptr) {}
->>>>>>> IR-Generation
 
   void Dump(int level = 0) const override {
     indent(level);
@@ -634,8 +554,6 @@ class PrimaryExpAST : public BaseAST {
         indent(level + 1);
         std::cout << "}\n";
         break;
-<<<<<<< HEAD
-=======
       case PrimaryExpType::LVal:
         std::cout << "LVal: {\n";
         indent(level + 2);
@@ -1113,7 +1031,6 @@ public:
         std::string init_val_ir = init_val->dumpIR(tempVarCounter);
         chk[ident] = init_val_ir;
         return init_val_ir;
->>>>>>> IR-Generation
     }
     indent(level);
     std::cout << "}\n";
@@ -1133,298 +1050,6 @@ public:
   } 
 };
 
-<<<<<<< HEAD
-// UnaryExp 处理 +, -, !
-class UnaryExpAST : public BaseAST {
- public:
-  std::string op;
-  std::unique_ptr<BaseAST> exp;
-
-  void Dump(int level = 0) const override {
-    indent(level);
-    std::cout << "UnaryExp {\n";
-    indent(level + 1);
-    std::cout << "op: " << op << "\n";
-    exp->Dump(level + 1);
-    indent(level);
-    std::cout << "}\n";
-  }
-
-  std::string dumpIR(int& tempVarCounter) const override {
-    std::string ir_exp = exp->dumpIR(tempVarCounter);
-    std::string tempVar = "%" + std::to_string(tempVarCounter++);
-//    std::cout<<"here";
-    if (op == "+") return ir_exp;
-    else if (op == "-") {
-      std::cout << "  " << tempVar << " = sub 0, " << ir_exp << "\n";
-    }
-    else if (op == "!") std::cout << "  " << tempVar << " = eq " << ir_exp << ", 0\n";
-    else assert(false);
-    return tempVar;
-  }
-};
-
-// AddExp 处理 +, -
-class AddExpAST : public BaseAST {
- public:
-  std::string op;
-  std::unique_ptr<BaseAST> left_AST;
-  std::unique_ptr<BaseAST> right_AST;
-
-  AddExpAST(std::unique_ptr<BaseAST> left)
-    : op(""), left_AST(std::move(left)), right_AST(nullptr) {}
-
-  AddExpAST(std::string op, std::unique_ptr<BaseAST> left, std::unique_ptr<BaseAST> right)
-    : op(op), left_AST(std::move(left)), right_AST(std::move(right)) {}
-
-  void Dump(int level = 0) const override {
-    indent(level);
-    std::cout << "AddExp {\n";
-    if (right_AST) {
-      indent(level + 1);
-      std::cout << "op: " << op << "\n";
-      indent(level + 1);
-      std::cout << "left_AST: {\n";
-      left_AST->Dump(level + 2);
-      indent(level + 1);
-      std::cout << "}\n";
-      indent(level + 1);
-      std::cout << "right_AST: {\n";
-      right_AST->Dump(level + 2);
-      indent(level + 1);
-      std::cout << "}\n";
-    } else {
-      left_AST->Dump(level + 1);
-    }
-    indent(level);
-    std::cout << "}\n";
-  }
-
-  std::string dumpIR(int& tempVarCounter) const override {
-    std::string left_ir = left_AST->dumpIR(tempVarCounter);
-    if (right_AST) {
-      std::string right_ir = right_AST->dumpIR(tempVarCounter);
-      std::string tempVar = "%" + std::to_string(tempVarCounter++);
-      if(op=="+"){
-        std::cout << "  " << tempVar << " = add " << left_ir << ", " << right_ir << "\n";
-      }
-      else if(op=="-"){
-        std::cout << "  " << tempVar << " = sub " << left_ir << ", " << right_ir << "\n";
-      }
-      else assert(false);
-//      std::cout << "!!!!\n"<<tempVar<<"\n";
-      return tempVar;
-    }
-//    std::cout<<"asdf\n";
-    return left_ir;
-  }
-};
-
-// MulExp 处理 *, /, %
-class MulExpAST : public BaseAST {
- public:
-  std::string op;
-  std::unique_ptr<BaseAST> left_AST;
-  std::unique_ptr<BaseAST> right_AST;
-
-  MulExpAST(std::unique_ptr<BaseAST> left)
-    : op(""), left_AST(std::move(left)), right_AST(nullptr) {}
-
-  MulExpAST(std::string op, std::unique_ptr<BaseAST> left, std::unique_ptr<BaseAST> right)
-    : op(op), left_AST(std::move(left)), right_AST(std::move(right)) {}
-
-  void Dump(int level = 0) const override {
-    indent(level);
-    std::cout << "MulExp {\n";
-    if (right_AST) {
-      indent(level + 1);
-      std::cout << "op: " << op << "\n";
-      indent(level + 1);
-      std::cout << "left_AST: {\n";
-      left_AST->Dump(level + 2);
-      indent(level + 1);
-      std::cout << "}\n";
-      indent(level + 1);
-      std::cout << "right_AST: {\n";
-      right_AST->Dump(level + 2);
-      indent(level + 1);
-      std::cout << "}\n";
-    } else {
-      left_AST->Dump(level + 1);
-    }
-    indent(level);
-    std::cout << "}\n";
-  }
-
-  std::string dumpIR(int& tempVarCounter) const override {
-    std::string left_ir = left_AST->dumpIR(tempVarCounter);
-    if (right_AST) {
-      std::string right_ir = right_AST->dumpIR(tempVarCounter);
-//      std::cout<<"here";
-      std::string tempVar = "%" + std::to_string(tempVarCounter++);
-      if(op=="*"){
-        std::cout << "  " << tempVar << " = mul " << left_ir << ", " << right_ir << "\n";
-      }
-      else if(op=="/"){
-        std::cout << "  " << tempVar << " = div " << left_ir << ", " << right_ir << "\n";
-      }
-      else if(op=="%"){
-        std::cout << "  " << tempVar << " = mod " << left_ir << ", " << right_ir << "\n";
-      }
-      else assert(false);
-      return tempVar;
-    }
-    return left_ir;
-  }
-};
-
-// RelExpAST  处理 <, >, <=, >=
-class RelExpAST : public BaseAST {
- public:
-  std::string op;
-  std::unique_ptr<BaseAST> left_AST;
-  std::unique_ptr<BaseAST> right_AST;
-  
-  RelExpAST(std::unique_ptr<BaseAST> left)
-    : op(""), left_AST(std::move(left)), right_AST(nullptr) {}
-
-  RelExpAST(std::string op, std::unique_ptr<BaseAST> left, std::unique_ptr<BaseAST> right)
-    : op(op), left_AST(std::move(left)), right_AST(std::move(right)) {}
-
-  void Dump(int level = 0) const override {
-    indent(level);
-    std::cout << "RelExp {\n";
-    if (right_AST) {
-      indent(level + 1);
-      std::cout << "op: " << op << "\n";
-      indent(level + 1);
-      std::cout << "left_AST: {\n";
-      left_AST->Dump(level + 2);
-      indent(level + 1);
-      std::cout << "}\n";
-      indent(level + 1);
-      std::cout << "right_AST: {\n";
-      right_AST->Dump(level + 2);
-      indent(level + 1);
-      std::cout << "}\n";
-    } else {
-      left_AST->Dump(level + 1);
-    }
-    indent(level);
-    std::cout << "}\n";
-  }
-};
-
-// EqExpAST 处理 ==, !=
-class EqExpAST : public BaseAST {
- public:
-  std::string op;
-  std::unique_ptr<BaseAST> left_AST;
-  std::unique_ptr<BaseAST> right_AST;
-  
-  EqExpAST(std::unique_ptr<BaseAST> left)
-    : op(""), left_AST(std::move(left)), right_AST(nullptr) {}
-
-  EqExpAST(std::string op, std::unique_ptr<BaseAST> left, std::unique_ptr<BaseAST> right)
-    : op(op), left_AST(std::move(left)), right_AST(std::move(right)) {}
-
-  void Dump(int level = 0) const override {
-    indent(level);
-    std::cout << "EqExp {\n";
-    if (right_AST) {
-      indent(level + 1);
-      std::cout << "op: " << op << "\n";
-      indent(level + 1);
-      std::cout << "left_AST: {\n";
-      left_AST->Dump(level + 2);
-      indent(level + 1);
-      std::cout << "}\n";
-      indent(level + 1);
-      std::cout << "right_AST: {\n";
-      right_AST->Dump(level + 2);
-      indent(level + 1);
-      std::cout << "}\n";
-    } else {
-      left_AST->Dump(level + 1);
-    }
-    indent(level);
-    std::cout << "}\n";
-  }
-};
-
-// LAndExpAST 处理 &&
-class LAndExpAST : public BaseAST {
- public:
-  std::string op = "&&";
-  std::unique_ptr<BaseAST> left_AST;
-  std::unique_ptr<BaseAST> right_AST;
-  
-  LAndExpAST(std::unique_ptr<BaseAST> left)
-    : left_AST(std::move(left)), right_AST(nullptr) {}
-
-  LAndExpAST(std::string op, std::unique_ptr<BaseAST> left, std::unique_ptr<BaseAST> right)
-    : op(op), left_AST(std::move(left)), right_AST(std::move(right)) {}
-
-  void Dump(int level = 0) const override {
-    indent(level);
-    std::cout << "LAndExp {\n";
-    if (right_AST) {
-      indent(level + 1);
-      std::cout << "op: " << op << "\n";
-      indent(level + 1);
-      std::cout << "left_AST: {\n";
-      left_AST->Dump(level + 2);
-      indent(level + 1);
-      std::cout << "}\n";
-      indent(level + 1);
-      std::cout << "right_AST: {\n";
-      right_AST->Dump(level + 2);
-      indent(level + 1);
-      std::cout << "}\n";
-    } else {
-      left_AST->Dump(level + 1);
-    }
-    indent(level);
-    std::cout << "}\n";
-  }
-};
-
-// LOrExpAST 处理 ||
-class LOrExpAST : public BaseAST {
- public:
-  std::string op = "||";
-  std::unique_ptr<BaseAST> left_AST;
-  std::unique_ptr<BaseAST> right_AST;
-  
-  LOrExpAST(std::unique_ptr<BaseAST> left)
-    : left_AST(std::move(left)), right_AST(nullptr) {}
-
-  LOrExpAST(std::string op, std::unique_ptr<BaseAST> left, std::unique_ptr<BaseAST> right)
-    : op(op), left_AST(std::move(left)), right_AST(std::move(right)) {}
-
-  void Dump(int level = 0) const override {
-    indent(level);
-    std::cout << "LOrExp {\n";
-    if (right_AST) {
-      indent(level + 1);
-      std::cout << "op: " << op << "\n";
-      indent(level + 1);
-      std::cout << "left_AST: {\n";
-      left_AST->Dump(level + 2);
-      indent(level + 1);
-      std::cout << "}\n";
-      indent(level + 1);
-      std::cout << "right_AST: {\n";
-      right_AST->Dump(level + 2);
-      indent(level + 1);
-      std::cout << "}\n";
-    } else {
-      left_AST->Dump(level + 1);
-    }
-    indent(level);
-    std::cout << "}\n";
-  }
-=======
 // Whole sentence for declearing constants: const int x = 1, y = 2;
 class ConstDeclAST : public BaseAST {
 public:
@@ -1537,7 +1162,6 @@ public:
         }
         return "";
     }
->>>>>>> IR-Generation
 };
 
 #endif

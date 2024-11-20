@@ -33,12 +33,8 @@ using namespace std;
 }
 
 //关键字Token
-<<<<<<< HEAD
-%token INT RETURN 
-=======
 %token INT RETURN CONST
 %token IF ELSE WHILE BREAK CONTINUE
->>>>>>> IR-Generation
 //比较运算符Token
 %token LE GE EQ NE
 //逻辑运算符Token
@@ -55,16 +51,11 @@ using namespace std;
 %token <str_val> IDENT
 %token <int_val> INT_CONST
 
-<<<<<<< HEAD
-%type <ast_val> FuncDef FuncType Block Stmt
-%type <ast_val> Exp UnaryExp PrimaryExp MulExp AddExp
-=======
 %type <ast_val> FuncDef FuncType Block Stmt BlockItem BlockItems
 %type <ast_val> Exp UnaryExp PrimaryExp MulExp AddExp
 %type <ast_val> RelExp EqExp LAndExp LOrExp
 %type <ast_val> OptionalExp
 
->>>>>>> IR-Generation
 %type <str_val> UnaryOp Mulop Addop
 %type <int_val> Number
 %type <ast_val> ConstDecl ConstDef ConstDefList ConstInitVal Decl ConstExp
@@ -155,17 +146,11 @@ Number
   ;
 
 Exp
-<<<<<<< HEAD
-  : AddExp {
-=======
   : LOrExp {
->>>>>>> IR-Generation
     $$ = $1;
   }
   ;
 
-<<<<<<< HEAD
-=======
 LOrExp
   : LAndExp {
     $$ = new LOrExpAST(unique_ptr<BaseAST>($1));
@@ -213,7 +198,6 @@ RelExp
     $$ = new RelExpAST(">=", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
   }
   ;
->>>>>>> IR-Generation
 
 AddExp
   : MulExp {
@@ -287,8 +271,6 @@ Mulop
     $$ = new string("%");
   }
   ;
-<<<<<<< HEAD
-=======
 
 BlockItems
   : BlockItem {
@@ -403,7 +385,6 @@ InitVal
         $$ = $1;
     }
     ;
->>>>>>> IR-Generation
 %%
 
 void yyerror(unique_ptr<BaseAST> &ast, const char *s) {

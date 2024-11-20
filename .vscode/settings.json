@@ -7,10 +7,7 @@
         "bit": "cpp",
         "*.tcc": "cpp",
         "cctype": "cpp",
-<<<<<<< HEAD
-=======
         "charconv": "cpp",
->>>>>>> IR-Generation
         "clocale": "cpp",
         "cmath": "cpp",
         "compare": "cpp",
@@ -20,10 +17,7 @@
         "cstdint": "cpp",
         "cstdio": "cpp",
         "cstdlib": "cpp",
-<<<<<<< HEAD
-=======
         "ctime": "cpp",
->>>>>>> IR-Generation
         "cwchar": "cpp",
         "cwctype": "cpp",
         "deque": "cpp",
@@ -51,14 +45,6 @@
         "new": "cpp",
         "numbers": "cpp",
         "ostream": "cpp",
-<<<<<<< HEAD
-        "sstream": "cpp",
-        "stdexcept": "cpp",
-        "streambuf": "cpp",
-        "cinttypes": "cpp",
-        "typeinfo": "cpp",
-        "iomanip": "cpp"
-=======
         "span": "cpp",
         "stdexcept": "cpp",
         "streambuf": "cpp",
@@ -70,6 +56,5 @@
         "iomanip": "cpp",
         "map": "cpp",
         "fstream": "cpp"
->>>>>>> IR-Generation
     }
 }

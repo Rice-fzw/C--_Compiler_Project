@@ -8,10 +8,7 @@
 #include "AST.h"
 #include "koopa.h"
 #include "RISCV.h"
-<<<<<<< HEAD
-=======
 #include "mylexer.h"
->>>>>>> IR-Generation
 
 using namespace std;
 
@@ -31,11 +28,6 @@ int main(int argc, const char *argv[]) {
   assert(!ret);
 
   int tempVarCounter = 0;
-<<<<<<< HEAD
-  if (string(mode) == "-koopa") ast->dumpIR(tempVarCounter);
-  else if (string(mode) == "-riscv" || string(mode) == "-perf")
-  {
-=======
   if (string(mode) == "-koopa") {
     stringstream ss;
     streambuf* cout_buf = cout.rdbuf();
@@ -50,7 +42,6 @@ int main(int argc, const char *argv[]) {
     out_file.close();
   }
   else if (string(mode) == "-riscv" || string(mode) == "-perf") {
->>>>>>> IR-Generation
     stringstream ss;
     streambuf* cout_buf = cout.rdbuf();
     cout.rdbuf(ss.rdbuf());
@@ -67,13 +58,7 @@ int main(int argc, const char *argv[]) {
     koopa_delete_program(program);
     Visit(raw);//deal with raw IR program
     koopa_delete_raw_program_builder(builder);
-<<<<<<< HEAD
-
-  }
-
-=======
   }
   delete lexer;
->>>>>>> IR-Generation
   return 0;
 }
