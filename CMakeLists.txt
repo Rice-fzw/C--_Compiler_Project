@@ -9,14 +9,14 @@ if(CPP_MODE)
 else()
   set(FB_EXT ".c")
 endif()
-message(STATUS "Flex/Bison generated source file extension: ${FB_EXT}")
+message(STATUS "Bison generated source file extension: ${FB_EXT}")
 
 # enable all warnings
 if(MSVC)
   add_compile_options(/W3)
 else()
   # disable warnings caused by old version of Flex
-  add_compile_options(-Wall -Wno-register)
+  add_compile_options(-Wall)
 endif()
 
 # options about libraries and includes
@@ -25,19 +25,14 @@ set(INC_DIR "$ENV{CDE_INCLUDE_PATH}" CACHE STRING "directory of includes")
 message(STATUS "Library directory: ${LIB_DIR}")
 message(STATUS "Include directory: ${INC_DIR}")
 
-# find Flex/Bison
-find_package(FLEX REQUIRED)
+# find Bison
 find_package(BISON REQUIRED)
 
 # generate lexer/parser
-file(GLOB_RECURSE L_SOURCES "src/*.l")
 file(GLOB_RECURSE Y_SOURCES "src/*.y")
-if(NOT (L_SOURCES STREQUAL "" AND Y_SOURCES STREQUAL ""))
-  string(REGEX REPLACE ".*/(.*)\\.l" "${CMAKE_CURRENT_BINARY_DIR}/\\1.lex${FB_EXT}" L_OUTPUTS "${L_SOURCES}")
+if(NOT Y_SOURCES STREQUAL "")
   string(REGEX REPLACE ".*/(.*)\\.y" "${CMAKE_CURRENT_BINARY_DIR}/\\1.tab${FB_EXT}" Y_OUTPUTS "${Y_SOURCES}")
-  flex_target(Lexer ${L_SOURCES} ${L_OUTPUTS})
   bison_target(Parser ${Y_SOURCES} ${Y_OUTPUTS})
-  add_flex_bison_dependency(Lexer Parser)
 endif()
 
 # project link directories
@@ -53,9 +48,9 @@ file(GLOB_RECURSE C_SOURCES "src/*.c")
 file(GLOB_RECURSE CXX_SOURCES "src/*.cpp")
 file(GLOB_RECURSE CC_SOURCES "src/*.cc")
 set(SOURCES ${C_SOURCES} ${CXX_SOURCES} ${CC_SOURCES}
-            ${FLEX_Lexer_OUTPUTS} ${BISON_Parser_OUTPUT_SOURCE})
+            ${BISON_Parser_OUTPUT_SOURCE})
 
 # executable
 add_executable(compiler ${SOURCES})
-set_target_properties(compiler PROPERTIES C_STANDARD 11 CXX_STANDARD 17)
+set_target_properties(compiler PROPERTIES CXX_STANDARD 17)
 target_link_libraries(compiler koopa pthread dl)

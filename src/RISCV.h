@@ -179,4 +179,8 @@ void Visit(const koopa_raw_value_t &value){
             assert(false);//Unsupported types
             break;
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> IR-Generation
