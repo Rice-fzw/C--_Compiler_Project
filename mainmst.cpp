@@ -51,7 +51,7 @@ int main() {
     auto symbol2 = scopeManager.lookupSymbol("x");
     if (symbol2.has_value()) {
         cout << "Found symbol: Type = " << symbol2.value()->type
-             << ", Value = " << symbol2.value()->value <<", Koopa = " << symbol.value()->KoopalR << endl;
+             << ", Value = " << symbol2.value()->value <<", Koopa = " << symbol2.value()->KoopalR << endl;
     } else {
         cout << "Symbol 'x' not found."<<endl;
     }
@@ -61,13 +61,29 @@ int main() {
     cout << "\nAfter exiting the current scope:"<<endl;
     scopeManager.printSymbolTable();
 
-    //retrieveValue 函数的用法 ，输入name，找值
-    auto value =localScope1.retrieveValue("z");
-    cout<<value.value()<<endl;
+    // 修改作用于原来的 scope  用top函数    
+    mySymboltable* poppedScope = scopeManager.top();
+    poppedScope->insertSymbol("k", "float", "3.14", "koopa5"); 
+    cout << "The mostcurrent whole symboltable" << endl;
+    scopeManager.printSymbolTable();
 
-    //lookupSymbol 功能覆盖了retrieveValue，除了获取值，还可以获取type，获取koopa，不过写起来繁琐一点，如果retrieveValue用不太到删掉也OK
-    auto value2 =localScope1.lookupSymbol("z");
-    cout<<value2.value()->value<<endl;
+    // 在整个作用域栈中查找 k
+    auto value2 = scopeManager.lookupSymbol("k");
+     if (value2.has_value()) {
+        cout << "Found symbol: Type = " << value2.value()->type
+            << ", Value = " << value2.value()->value << ", Koopa = " << value2.value()->KoopalR << endl;
+    } else {
+        cout << "Symbol 'k' not found." << endl;
+    }
+
+    //在当前作用域查找x，找不到
+    auto value3 = poppedScope->lookupSymbol("x");
+    if (value3.has_value()) {
+        cout << "Found symbol: Type = " << value3.value()->type
+            << ", Value = " << value3.value()->value << ", Koopa = " << value3.value()->KoopalR << endl;
+    } else {
+        cout << "Symbol 'x' not found." << endl;
+    }
 
     return 0;
 }
