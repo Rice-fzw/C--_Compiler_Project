@@ -29,8 +29,20 @@ Hexadecimal   0[xX][0-9a-fA-F]+
 {WhiteSpace}    { /* 忽略, 不做任何操作 */ }
 {LineComment}   { /* 忽略, 不做任何操作 */ }
 
-"int"           { return INT; }
-"return"        { return RETURN; }
+"int"          { return INT; }
+"return"       { return RETURN; }
+"const"        { return CONST; }
+"if"           { return IF; }
+"else"         { return ELSE; }
+"while"        { return WHILE; }
+"break"        { return BREAK; }
+"continue"     { return CONTINUE; }
+"<="           { return LE; }
+">="           { return GE; }
+"=="           { return EQ; }
+"!="           { return NE; }
+"&&"           { return LAND; }
+"||"           { return LOR; }
 
 {Identifier}    { yylval.str_val = new string(yytext); return IDENT; }
 

@@ -7,6 +7,7 @@
         "bit": "cpp",
         "*.tcc": "cpp",
         "cctype": "cpp",
+        "charconv": "cpp",
         "clocale": "cpp",
         "cmath": "cpp",
         "compare": "cpp",
@@ -16,6 +17,7 @@
         "cstdint": "cpp",
         "cstdio": "cpp",
         "cstdlib": "cpp",
+        "ctime": "cpp",
         "cwchar": "cpp",
         "cwctype": "cpp",
         "deque": "cpp",
@@ -43,11 +45,16 @@
         "new": "cpp",
         "numbers": "cpp",
         "ostream": "cpp",
-        "sstream": "cpp",
+        "span": "cpp",
         "stdexcept": "cpp",
         "streambuf": "cpp",
+        "text_encoding": "cpp",
         "cinttypes": "cpp",
         "typeinfo": "cpp",
-        "iomanip": "cpp"
+        "variant": "cpp",
+        "sstream": "cpp",
+        "iomanip": "cpp",
+        "map": "cpp",
+        "fstream": "cpp"
     }
 }
