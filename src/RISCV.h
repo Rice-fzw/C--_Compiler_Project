@@ -171,6 +171,39 @@ void Visit(const koopa_raw_value_t &value){
                     std::cout << "  " << std::setw(6) << "xor" << std::setw(4) << reg + "," << std::setw(4) << lhs_reg + "," << std::setw(4) << rhs_reg << std::endl;
                     std::cout << "  " << std::setw(6) << "seqz" << std::setw(4) << reg + "," << std::setw(4) << reg << std::endl;
                     break;
+
+                case KOOPA_RBO_LT://less than operation
+                    reg = "t" + std::to_string(--temp_reg);//compare the same element
+                    temp_reg++;
+                    value_to_reg[value] = reg;
+                    std::cout << std::left;
+                    std::cout << "  " << std::setw(6) << "slt" << std::setw(4) << reg + "," << std::setw(4) << lhs_reg + "," << std::setw(4) << rhs_reg << std::endl;
+                    break;
+                case KOOPA_RBO_LTE://greater than or equal to operation
+                    reg = "t" + std::to_string(--temp_reg);//compare the same element
+                    temp_reg++;
+                    value_to_reg[value] = reg;
+                    std::cout << "hereLTE" << std::endl;
+                    std::cout << std::left;
+                    std::cout << "  " << std::setw(6) << "slt" << std::setw(4) << reg + "," << std::setw(4) << lhs_reg + "," << std::setw(4) << rhs_reg << std::endl;
+                    std::cout << "  " << std::setw(6) << "seqz" << std::setw(4) << reg + "," << std::setw(4) << reg << std::endl;
+                    break;
+                case KOOPA_RBO_GT://greater than operation
+                    reg = "t" + std::to_string(--temp_reg);//compare the same element
+                    temp_reg++;
+                    value_to_reg[value] = reg;
+                    std::cout << std::left;
+                    std::cout << "  " << std::setw(6) << "sgt" << std::setw(4) << lhs_reg + "," << std::setw(4) << rhs_reg + "," << std::setw(4) << rhs_reg << std::endl;
+                    break;
+                case KOOPA_RBO_GTE://greater than or equal to operation
+                    reg = "t" + std::to_string(--temp_reg);//compare the same element
+                    temp_reg++;
+                    value_to_reg[value] = reg;
+                    std::cout << "hereGTE" << std::endl;
+                    std::cout << std::left;
+                    std::cout << "  " << std::setw(6) << "sgt" << std::setw(4) << reg + "," << std::setw(4) << lhs_reg + "," << std::setw(4) << rhs_reg << std::endl;
+                    std::cout << "  " << std::setw(6) << "seqz" << std::setw(4) << reg + "," << std::setw(4) << reg << std::endl;
+                    break;
             }
             break;
         
