@@ -1032,6 +1032,22 @@ public:
         chk[ident] = init_val_ir;
         return init_val_ir;
     }
+    indent(level);
+    std::cout << "}\n";
+  }
+
+  std::string dumpIR(int& tempVarCounter) const override {
+//    std::cout<<"here"<<"\n";
+    if (type == PrimaryExpType::number) {
+//      std::cout<<"ret"<<" ";
+      return std::to_string(number);
+    } else if (type == PrimaryExpType::exp) {
+    //  std::string u=exp->dumpIR(tempVarCounter);
+    //  std::cout << "!!!!\n"<<"\n";
+      return exp->dumpIR(tempVarCounter);  // 如果是表达式，递归调用其 `dumpIR`
+    }
+    return "";
+  } 
 };
 
 // Whole sentence for declearing constants: const int x = 1, y = 2;
