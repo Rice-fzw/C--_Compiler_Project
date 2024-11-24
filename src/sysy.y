@@ -60,6 +60,7 @@ using namespace std;
 %type <int_val> Number
 %type <ast_val> ConstDecl ConstDef ConstDefList ConstInitVal Decl ConstExp
 %type <ast_val> VarDecl VarDefList VarDef InitVal
+%type <ast_val> Putint
 %type <str_val> BType LVal
 
 
@@ -127,6 +128,9 @@ Stmt
     }
     | CONTINUE ';' {
         $$ = StmtAST::makeContinue();
+    }
+    | PUTINT '(' Exp ')' ';' {  // putint
+        $$ = new PutintAST($3);
     }
     ;
 

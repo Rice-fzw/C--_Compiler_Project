@@ -1167,4 +1167,33 @@ public:
     }
 };
 
+class PutintAST : public BaseAST {
+public:
+    std::unique_ptr<BaseAST> exp;  // 要打印的表达式
+
+    // Constructor
+    PutintAST(BaseAST* exp) : exp(std::unique_ptr<BaseAST>(exp)) {}
+
+    void Dump(int level = 0) const override {
+        indent(level);
+        std::cout << "Putint {\n";
+        exp->Dump(level + 1);
+        indent(level);
+        std::cout << "}\n";
+    }
+
+    std::string dumpIR(int& tempVarCounter) const override {
+        // 先计算表达式的值
+        std::string exp_result = exp->dumpIR(tempVarCounter);
+        
+        // 生成 putint 调用
+        std::cout << "  call @putint(" << exp_result << ")\n";
+        
+        // putint的返回值（如果需要的话）
+        std::string result = "%" + std::to_string(tempVarCounter++);
+        std::cout << "  " << result << " = ret\n";
+        return result;
+    }
+};
+
 #endif

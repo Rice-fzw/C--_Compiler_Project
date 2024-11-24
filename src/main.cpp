@@ -9,7 +9,6 @@
 #include "koopa.h"
 #include "RISCV.h"
 #include "mylexer.h"
-#include "mylexer.h"
 
 using namespace std;
 
