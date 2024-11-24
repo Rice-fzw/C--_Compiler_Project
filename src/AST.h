@@ -540,9 +540,9 @@ class PrimaryExpAST : public BaseAST {
   int number;
   std::string LVal;
 
-  PrimaryExpAST(int val) : type(PrimaryExpType::number), number(val), exp(nullptr) {}
+  PrimaryExpAST(int val) : type(PrimaryExpType::number), number(val), exp(nullptr), LVal("") {}
   PrimaryExpAST(std::unique_ptr<BaseAST> e)
-    : type(PrimaryExpType::exp), number(0), exp(std::move(e)) {}
+    : type(PrimaryExpType::exp), number(0), exp(std::move(e)), LVal("") {}
   PrimaryExpAST(std::string* l, bool isLVal) 
     : type(PrimaryExpType::LVal), LVal(*l), number(0), exp(nullptr) {}
 

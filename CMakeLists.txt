@@ -2,20 +2,13 @@ cmake_minimum_required(VERSION 3.13)
 project(compiler)
 
 # settings
-# set to OFF to enable C mode
-set(CPP_MODE ON)
-if(CPP_MODE)
-  set(FB_EXT ".cpp")
-else()
-  set(FB_EXT ".c")
-endif()
+set(FB_EXT ".cpp")
 message(STATUS "Bison generated source file extension: ${FB_EXT}")
 
 # enable all warnings
 if(MSVC)
   add_compile_options(/W3)
 else()
-  # disable warnings caused by old version of Flex
   add_compile_options(-Wall)
 endif()
 
@@ -46,7 +39,6 @@ include_directories(${INC_DIR})
 # all of C/C++ source files
 file(GLOB_RECURSE C_SOURCES "src/*.c")
 file(GLOB_RECURSE CXX_SOURCES "src/*.cpp")
-file(GLOB_RECURSE CC_SOURCES "src/*.cc")
 set(SOURCES ${C_SOURCES} ${CXX_SOURCES} ${CC_SOURCES}
             ${BISON_Parser_OUTPUT_SOURCE})
 
