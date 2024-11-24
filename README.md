@@ -1,51 +1,154 @@
-# 基于 CMake 的 SysY 编译器项目模板
+# SysY Compiler
 
-该仓库中存放了一个基于 CMake 的 SysY 编译器项目的模板, 你可以在该模板的基础上进行进一步的开发.
+A compiler that translates SysY (a subset of C language) to RISC-V assembly via Koopa IR. This is a course project for PKU Compiler Principles.
 
-该仓库中的 C/C++ 代码实现仅作为演示, 不代表你的编译器必须以此方式实现. 如你需要使用该模板, 建议你删掉所有 C/C++ 源文件, 仅保留 `CMakeLists.txt` 和必要的目录结构, 然后重新开始实现.
+## Introduction
 
-该模板仅供不熟悉 CMake 的同学参考, 在理解基本原理的基础上, 你完全可以不使用模板完成编译器的实现. 如你决定不使用该模板并自行编写 CMake, 请参考 [“评测平台要求”](#评测平台要求) 部分.
+Development environment: [compiler-dev](https://github.com/pku-minic/compiler-dev)
 
-## 使用方法
+### Setup Development Environment
 
-首先 clone 本仓库:
-
-```sh
-git clone https://github.com/pku-minic/sysy-cmake-template.git
+```bash
+docker pull maxxing/compiler-dev
 ```
 
-在 [compiler-dev](https://github.com/pku-minic/compiler-dev) 环境内, 进入仓库目录后执行:
+### Basic Features
 
-```sh
-cd sysy-make-template
-cmake -DCMAKE_BUILD_TYPE=Debug -B build
-cmake --build build
+1. Compiles SysY programs to Koopa IR
+2. Translates Koopa IR to RISC-V assembly
+3. Implements register allocation to optimize performance
+
+### Key Characteristics
+
+- Simple and correct implementation
+- Recursively processes nested AST data structures with a single pass
+- High correctness with comprehensive test coverage
+- Uses tiered register allocation strategy for better performance
+
+## Compiler Design
+
+### Main Components
+
+The compiler consists of 3 main modules:
+- `sysy.l` and `sysy.y`: Lexical and syntax analysis
+- `AST.h`: Compiles SysY source code to Koopa IR
+- `RISCV.h`: Compiles Koopa IR to RISC-V instructions
+
+### Core Data Structures
+
+The most important data structure is the AST (Abstract Syntax Tree). A `CompUnitAST` instance represents the root of the tree, containing all function definitions and global variable definitions. Some key classes include:
+
+- `FuncDefAST`: Function definitions
+- `ConstDeclAST` and `ConstDefAST`: Constant declarations and definitions
+- `VarDeclAST` and `VarDefAST`: Variable declarations and definitions
+- `BlockAST`: Statement blocks
+- `StmtAST`: Statements
+- `ExpAST`: Expressions
+
+All AST classes inherit from the base class `BaseAST`.
+
+### Example Code Translation
+
+Here's an example showing how the compiler works:
+
+Input SysY code:
+```c
+int a = 10;
+
+int inc() {
+  a = a + 1;
+  return a;
+}
+
+void print_a() {
+  putint(a);
+  putch(10);
+}
+
+int main() {
+  int i = 0;
+  while (i < 10) {
+    inc();
+    int a = 1;
+    a = a + 2;
+    putint(a);
+    putch(10);
+    print_a();
+    i = i + 1;
+  }
+  return 0;
+}
 ```
 
-CMake 将在 `build` 目录下生成名为 `compiler` 的可执行文件.
+Generated Koopa IR:
+```
+decl @putint(i32)
+decl @putch(i32)
 
-如在此基础上进行开发, 你需要重新初始化 Git 仓库:
+global @COMPILER__a_ = alloc i32, 10
+fun @inc(): i32{
+%entry:
+  %0 = load @COMPILER__a_
+  %1 = add %0, 1
+  store %1, @COMPILER__a_
+  %2 = load @COMPILER__a_
+  ret %2
+}
 
-```sh
-rm -rf .git
-git init
+fun @print_a(){
+%entry:
+  %3 = load @COMPILER__a_
+  call @putint(%3)
+  call @putch(10)
+  ret
+}
+
+fun @main(): i32{
+%entry:
+  @COMPILER__i__43_0 = alloc i32
+  store 0, @COMPILER__i__43_0
+  jump %while_1
+  // ... [rest of the main function]
+}
 ```
 
-然后, 根据情况修改 `CMakeLists.txt` 中的 `CPP_MODE` 参数. 如果你决定使用 C 语言进行开发, 你应该将其值改为 `OFF`.
+The compiler then generates RISC-V assembly from this Koopa IR.
 
-最后, 将自己的编译器的源文件放入 `src` 目录.
+## Key Features
 
-## 测试要求
+### Register Allocation
 
-当你提交一个根目录包含 `CMakeLists.txt` 文件的仓库时, 测试脚本/评测平台会使用如下命令编译你的编译器:
+The compiler uses a simple but effective register allocation strategy:
+- Each register has a `reg_stats` value (0, 1, or 2)
+- 0: Register is empty or contains unimportant value
+- 1: Value might be used later
+- 2: Value cannot be replaced (protected)
 
-```sh
-cmake -S "repo目录" -B "build目录" -DLIB_DIR="libkoopa目录" -DINC_DIR="libkoopa头文件目录"
-cmake --build "build目录" -j `nproc`
+## Testing
+
+The compiler handles various edge cases including:
+- Variable name conflicts between global and local scopes
+- Function names as variable names
+- Constants/variables named "main"
+- Label and variable name conflicts
+
+Example test case:
+```c
+int x = 3;
+
+int f(int then) {
+    return x + then;
+}
+
+int main() {
+    int f = 2, x = 5;
+    if (x > 3) f = 3;
+    const int main[2] = {1, 2};
+    return f(main[1] + x + f);
+}
 ```
 
-你的 `CMakeLists.txt` 必须将可执行文件直接输出到所指定的 build 目录的根目录, 且将其命名为 `compiler`.
+## Known Limitations
 
-如需链接 `libkoopa`, 你的 `CMakeLists.txt` 应当处理 `LIB_DIR` 和 `INC_DIR`.
-
-模板中的 `CMakeLists.txt` 已经处理了上述内容, 你无需额外关心.
+- Some advanced compiler optimizations (like graph coloring for register allocation, live variable analysis, available expression analysis) are not implemented
+- Limited error handling and diagnostics

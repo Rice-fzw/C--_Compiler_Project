@@ -33,9 +33,6 @@
 
         // check whether there is duplicate value, can be used to check whether a identifier has been initialized before insert 
         bool checkSymbolOK(const std::string name);
-
-        // to get value
-        std::optional<std::string> retrieveValue(const std::string & name);
     
         // print all the symbol in current scope
         void printSymbolTable();
@@ -54,6 +51,9 @@
         Scope(){
 
         };
+
+        //to get the most current scope, users should be careful when the scope is empty
+        mySymboltable* top();
 
         // to exit current scope 
         void exitScope() ;

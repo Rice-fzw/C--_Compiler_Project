@@ -27,16 +27,6 @@ using namespace std;
         return true;
     }
 
-    optional<string> mySymboltable::retrieveValue(const string &name){
-         for (auto it = Symboltable.begin(); it != Symboltable.end(); ++it) {
-            if (it->first == name) {
-                return it->second->value;
-            }
-        }
-        return nullopt;
-        
-    }
-
     optional<shared_ptr<Symbol>> mySymboltable::lookupSymbol(const string& name) {
         auto it = Symboltable.find(name);
         if (it != Symboltable.end()) {
@@ -62,6 +52,20 @@ using namespace std;
     void Scope::insertScope(const mySymboltable& mst){
         scopes.push(mst);
     }
+
+    
+
+   
+   mySymboltable* Scope::top() {
+    if (scopes.empty()) {
+        throw std::runtime_error("Stack is empty. Cannot top.");
+    }
+    mySymboltable* topScope = &scopes.top(); 
+    return topScope; 
+}
+
+
+
 
     void Scope::exitScope(){
         if (!scopes.empty()) {
@@ -102,14 +106,3 @@ using namespace std;
 
         return nullopt; 
     }
-
-
-
-
-
-    
-
-
-
-    
- 

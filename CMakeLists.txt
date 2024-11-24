@@ -42,7 +42,7 @@ file(GLOB_RECURSE CXX_SOURCES "src/*.cpp")
 set(SOURCES ${C_SOURCES} ${CXX_SOURCES} ${CC_SOURCES}
             ${BISON_Parser_OUTPUT_SOURCE})
 
-# executable
+# 可执行文件
 add_executable(compiler ${SOURCES})
 set_target_properties(compiler PROPERTIES CXX_STANDARD 17)
 target_link_libraries(compiler koopa pthread dl)
