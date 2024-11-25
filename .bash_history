@@ -261,3 +261,48 @@ docker run -it --rm -v D:/CSC3002-Project:/root/compiler maxxing/compiler-dev au
 exit
 sh test.sh
 exit
+sh test.sh
+exit
+sh test.sh
+exit
+sh test.sh
+exit
+sh test.sh
+exit
+sh test.sh
+exit
+sh test.sh
+exit
+sh test.sh
+exirt
+exit
+sh test.sh
+exit
+sh test.sh
+exit
+sh test.sh
+exit
+sh test.sh
+docker run -it --rm -v D:/CSC3002-Project:/root/compiler maxxing/compiler-dev autotest -koopa -s lv8 /root/compiler
+exit
+sh test.sh
+exit
+sh test.sh
+exit
+sh test.sh
+exit
+sh test.sh
+exit
+sh test.sh
+exit
+sh test.sh
+exit
+sh test.sh
+docker run -it --rm -v D:/CSC3002-Project:/root/compiler maxxing/compiler-dev autotest -koopa -s lv1 /root/compiler
+exit
+sh test.sh
+exit
+sh test.sh
+exit
+sh test.sh
+exit

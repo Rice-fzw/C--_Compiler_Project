@@ -20,7 +20,7 @@ int main(int argc, const char *argv[]) {
   auto input = argv[2];
   auto output = argv[4];
 
-  lexer = new Lexer(input);
+  lexer = new Mylexer(input);
   assert(lexer);
 
   unique_ptr<BaseAST> ast;
