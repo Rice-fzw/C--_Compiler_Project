@@ -8,11 +8,14 @@
 #include <cassert>
 #include <vector>
 #include <map>
+#include "mySymboltable.h"
 
 static int if_num = 0;
 static int while_num = 0;
 static std::map<std::string, std::string> chk;
 static std::map<std::string, int> var_num;
+static Scope scopeManager;
+static std::vector<int> while_stack;
 
 // Auxiliary function: Print indentation
 inline void indent(int level) {
@@ -149,10 +152,13 @@ public:
 
     std::string dumpIR(int& tempVarCounter) const override {
         std::string last_result;
+        mySymboltable newtbl;
+        scopeManager.insertScope(newtbl);
         for (const auto& item : items) {
             last_result = item->dumpIR(tempVarCounter);
             if(last_result == "ret" || last_result == "break" || last_result == "cont") break;
         }
+        scopeManager.exitScope();
         return last_result;
     }
 
@@ -178,15 +184,18 @@ public:
 
     std::string dumpIR(int& tempVarCounter) const override {
         // obatain the value of variable
-        if (chk.find(ident) == chk.end()){
+        auto varpit = scopeManager.lookupSymbol(ident);
+        std::string var_type= varpit.value() -> type;
+        std::string var_nam= varpit.value() -> KoopalR;
+        if (var_type == "int"){
         //  std::cout<< chk[ident] << " " << ident << std::endl;
           std::string var_ptr = "@" + ident;  // address of variable
-          std::string var_nam=var_ptr + "_" + std::to_string(var_num[var_ptr]++);
+//          std::string var_nam=var_ptr + "_" + std::to_string(var_num[var_ptr]++);
           std::string temp_var = "%" + std::to_string(tempVarCounter++);
-          std::cout << "  " << temp_var << " = load " << var_ptr << "\n";
+          std::cout << "  " << temp_var << " = load " << var_nam << "\n";
           return temp_var;
         }
-        return chk[ident];
+        return var_nam;
     }
 };
 
@@ -325,10 +334,11 @@ public:
             case StmtType::Assign: {
                 if (lval.hasValue() && exp.hasValue()) {
                     std::string exp_result = exp.getValue()->dumpIR(tempVarCounter);
-                    
                     std::string var_ptr = "@" + lval.getValue();
-                    std::string var_nam=var_ptr + "_" + std::to_string(var_num[var_ptr]);
-                    std::cout << "  store " << exp_result << ", " << var_ptr << "\n";
+
+                    auto varpit = scopeManager.lookupSymbol(lval.getValue());
+                    std::string var_nam= varpit.value() -> KoopalR;
+                    std::cout << "  store " << exp_result << ", " << var_nam << "\n";
                 }
                 return "";
             }
@@ -351,13 +361,15 @@ public:
 
             case StmtType::Break: {
                 // Jump to the end tag of the current loop
-                std::cout << "  jump %while_end_" << while_num - 1 << "\n";
+                int while_nb=while_stack.back();
+                std::cout << "  jump %while_end_" << while_nb - 1 << "\n";
                 return "break";
             }
 
             case StmtType::Continue: {
                 // Jump to the conditional judgment label of the current loop
-                std::cout << "  jump %while_entry_" << while_num - 1 << "\n";
+                int while_nb=while_stack.back();
+                std::cout << "  jump %while_entry_" << while_nb - 1 << "\n";
                 return "cont";
             }
             
@@ -489,7 +501,7 @@ public:
         std::string entry_label = "%while_entry_" + std::to_string(while_num);
         std::string body_label = "%while_body_" + std::to_string(while_num);
         std::string end_label = "%while_end_" + std::to_string(while_num++);
-
+        while_stack.push_back(while_num);
         // Jump to entry block
         std::cout << "  jump " << entry_label << "\n";
         
@@ -506,7 +518,7 @@ public:
         
         // End block
         std::cout << end_label << ":\n";
-        
+        while_stack.pop_back();
         return "";
     }
 };
@@ -567,23 +579,26 @@ class PrimaryExpAST : public BaseAST {
   }
 
   std::string dumpIR(int& tempVarCounter) const override {
-  if (type == PrimaryExpType::number) {
-    return std::to_string(number);
-  } else if (type == PrimaryExpType::exp) {
-    return exp->dumpIR(tempVarCounter);
-  } else if (type == PrimaryExpType::LVal) {
-    if (chk.find(LVal) == chk.end()){
-      //    std::cout<< chk[LVal] << " " << LVal << std::endl;
-          std::string var_ptr = "@" + LVal;  // variable's address
-          std::string var_nam=var_ptr + "_" + std::to_string(var_num[var_ptr]++);
-          std::string temp_var = "%" + std::to_string(tempVarCounter++);
-          std::cout << "  " << temp_var << " = load " << var_ptr << "\n";
-          return temp_var;
+    if (type == PrimaryExpType::number) {
+      return std::to_string(number);
+    } else if (type == PrimaryExpType::exp) {
+      return exp->dumpIR(tempVarCounter);
+    } else if (type == PrimaryExpType::LVal) {
+      auto varpit = scopeManager.lookupSymbol(LVal);
+      std::string var_type= varpit.value() -> type;
+      std::string var_nam= varpit.value() -> KoopalR;
+      if (var_type == "int"){
+        //    std::cout<< chk[LVal] << " " << LVal << std::endl;
+            std::string var_ptr = "@" + LVal;  // variable's address
+  //          std::string var_nam=var_ptr + "_" + std::to_string(var_num[var_ptr]++);
+            std::string temp_var = "%" + std::to_string(tempVarCounter++);
+            std::cout << "  " << temp_var << " = load " << var_nam << "\n";
+            return temp_var;
+      }
+      return var_nam;
     }
-    return chk[LVal];
+    return "";
   }
-  return "";
-}
 };
 
 // UnaryExp handel +, -, !
@@ -1029,25 +1044,11 @@ public:
 
     std::string dumpIR(int& tempVarCounter) const override {
         std::string init_val_ir = init_val->dumpIR(tempVarCounter);
-        chk[ident] = init_val_ir;
+        mySymboltable* topscope = scopeManager.top();
+        topscope -> insertSymbol(ident, "const", "1", init_val_ir);
+        //chk[ident] = init_val_ir;
         return init_val_ir;
     }
-    indent(level);
-    std::cout << "}\n";
-  }
-
-  std::string dumpIR(int& tempVarCounter) const override {
-//    std::cout<<"here"<<"\n";
-    if (type == PrimaryExpType::number) {
-//      std::cout<<"ret"<<" ";
-      return std::to_string(number);
-    } else if (type == PrimaryExpType::exp) {
-    //  std::string u=exp->dumpIR(tempVarCounter);
-    //  std::cout << "!!!!\n"<<"\n";
-      return exp->dumpIR(tempVarCounter);  // 如果是表达式，递归调用其 `dumpIR`
-    }
-    return "";
-  } 
 };
 
 // Whole sentence for declearing constants: const int x = 1, y = 2;
@@ -1118,12 +1119,13 @@ public:
 
     std::string dumpIR(int& tempVarCounter) const override {
         std::string var_ptr = "@" + ident;
-        std::string var_nam=var_ptr + "_" + std::to_string(var_num[var_ptr]);
-        std::cout << "  " << var_ptr << " = alloc i32\n";
-        
+        std::string var_nam = var_ptr + "_" + std::to_string(var_num[var_ptr]++);
+        std::cout << "  " << var_nam << " = alloc i32\n";
+        mySymboltable* topscope = scopeManager.top();
+        topscope -> insertSymbol(ident, "int", "1", var_nam);
         if (has_init) {
             std::string init_val_ir = init_val->dumpIR(tempVarCounter);
-            std::cout << "  store " << init_val_ir << ", " << var_ptr << "\n";
+            std::cout << "  store " << init_val_ir << ", " << var_nam << "\n";
         }
         
         return var_ptr;

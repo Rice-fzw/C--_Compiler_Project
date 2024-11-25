@@ -1,9 +1,7 @@
 #include <iostream>
-#include <iomanip>
 #include <unordered_map>
 #include "koopa.h"
 
-using namespace std;
 int var_flag = 0;
 int sp_offset = 0; //sp of the whole stack
 int koo_reg_num = 0;
@@ -13,6 +11,7 @@ std::unordered_map<koopa_raw_value_t, std::string> koo_reg;
 int temp_reg = 0;
 int val_reg = 0;
 int aligned_stack_size = 0;
+std::string true_bb, false_bb, target_name;
 std::unordered_map<int32_t, std::string> int_to_reg;
 std::unordered_map<koopa_raw_value_t, std::string> value_to_reg;
 
@@ -65,11 +64,17 @@ void VisitStack(const koopa_raw_basic_block_t &bb){
 }
 void VisitStack(const koopa_raw_value_t &value){
     const auto &kind = value->kind;
-    std::string reg;
+    std::string reg, val_name;
     switch(kind.tag){
-        case KOOPA_RVT_ALLOC:
-            var_flag = 1;
-            AllocateStackForVariable(value->name);
+        case KOOPA_RVT_ALLOC:            
+            val_name = value->name;
+            if (val_name[0] == '%'){
+                koo_reg_num++;
+            }else if (val_name[0] == '@'){
+                var_flag = 1;
+            }
+            koo_reg[value] = value->name;
+            AllocateStackForVariable(val_name);
             break;
         case KOOPA_RVT_LOAD:
         case KOOPA_RVT_BINARY:
@@ -79,11 +84,13 @@ void VisitStack(const koopa_raw_value_t &value){
             break;
         case KOOPA_RVT_STORE:
         case KOOPA_RVT_RETURN:
+        case KOOPA_RVT_BRANCH:
+        case KOOPA_RVT_JUMP:
             break;
-    default:
-        std::cout << "Unhandled visitStack operation: " << kind.tag << std::endl;
-        assert(false);//Unsupported types
-        break;
+        default:
+            std::cout << "Unhandled visitStack operation: " << kind.tag << std::endl;
+            assert(false);//Unsupported types
+            break;
     }
 }
 
@@ -100,7 +107,6 @@ void Visit(const koopa_raw_program_t &raw){
     currently:
         raw program -> functions and global variables
 */
-    std::cout<<"  "<<".text"<<std::endl;
     Visit(raw.values);//koopa_raw_slice_t
     Visit(raw.funcs);//koopa_raw_slice_t
 
@@ -134,6 +140,7 @@ void Visit(const koopa_raw_function_t &func){
     currently:
         functions-> basic blocks
 */
+    std::cout << "  " << ".text" << std::endl;
     std::string func_name = func->name;
     if (!func_name.empty() && func_name[0] == '@') {
         func_name = func_name.substr(1); //remove "@"
@@ -143,8 +150,7 @@ void Visit(const koopa_raw_function_t &func){
     if(var_flag == 1){
         //std::cout << "Aligned stack size: " << aligned_stack_size << " bytes" << std::endl;
         //std::cout << "Length of map: " << var_offset.size() << std::endl;
-        std::cout << std::left;
-        std::cout << "  " << std::setw(6) << "addi" << std::setw(4) << "sp," << std::setw(4) << "sp," << std::setw(4) << "-" + std::to_string(aligned_stack_size) << std::endl;
+        std::cout << "  " << "addi " <<  "sp, " << "sp, " << "-" + std::to_string(aligned_stack_size) << std::endl;
     }
 
     Visit(func->bbs);//koopa_raw_slice_t
@@ -157,6 +163,11 @@ void Visit(const koopa_raw_basic_block_t &bb){
         basic blocks -> values
 */
 //    std::cout<<"here3!"<<std::endl;
+    std::string bb_name = bb->name;
+    if (!bb_name.empty() && bb_name[0] == '%'){
+        bb_name = bb_name.substr(1); //remove "%"
+    }
+    std::cout << bb_name << ":" << std::endl;  //output the basic block name
     Visit(bb->insts);//koopa_raw_slice_t
 }
 
@@ -174,7 +185,11 @@ void Visit(const koopa_raw_value_t &value){
 
     switch(kind.tag){
         case KOOPA_RVT_ALLOC:
-            reg = "t" + std::to_string(val_reg);
+            if(var_flag == 0){
+                reg = "t" + std::to_string(temp_reg++);
+            }else if(var_flag == 1){
+                reg = "t" + std::to_string(val_reg++);
+            }
             value_to_reg[value] = reg;
             break;
         case KOOPA_RVT_LOAD:
@@ -184,16 +199,19 @@ void Visit(const koopa_raw_value_t &value){
             }
             //std::cout << "Load from pointer: " << kind.data.load.src->name << std::endl;
             //Visit(kind.data.load.src);
-            value_to_reg[value] = "t" + std::to_string(val_reg);
+            if(var_flag == 0){
+                value_to_reg[value] = "t" + std::to_string(temp_reg++);
+            }else if(var_flag == 1){
+                value_to_reg[value] = "t" + std::to_string(val_reg++);
+            }
             reg = value_to_reg[kind.data.load.src];
             //std::cout << "Register: " << reg << std::endl;
             lw_sf_reg = kind.data.load.src->name;
             lw_sta_fra = var_offset[lw_sf_reg];
             sw_sf_reg = koo_reg[value];
             sw_sta_fra = var_offset[sw_sf_reg];
-            std::cout << std::left;
-            std::cout << "  " << std::setw(6) << "lw" << std::setw(4) << reg + "," << std::to_string(lw_sta_fra) << "(sp)" << std::endl;
-            std::cout << "  " << std::setw(6) << "sw" << std::setw(4) << reg + "," << std::to_string(sw_sta_fra) << "(sp)" << std::endl;   
+            std::cout << "  " << "lw " << reg + ", " << std::to_string(lw_sta_fra) << "(sp)" << std::endl;
+            std::cout << "  " << "sw " << reg + ", " << std::to_string(sw_sta_fra) << "(sp)" << std::endl;   
             break;
         case KOOPA_RVT_STORE:
             //std::cout << "HERE STORE" << std::endl;
@@ -209,41 +227,38 @@ void Visit(const koopa_raw_value_t &value){
                 int_to_reg[kind.data.store.value->kind.data.integer.value] = kind.data.store.dest->name;
                 sw_sf_reg = kind.data.store.dest->name;
                 sw_sta_fra = var_offset[sw_sf_reg];
-                std::cout << std::left;
-                std::cout << "  " << std::setw(6) << "sw" << std::setw(4) << reg + "," << std::to_string(sw_sta_fra) << "(sp)" << std::endl;
+                std::cout << "  " << "sw " << reg + ", " << std::to_string(sw_sta_fra) << "(sp)" << std::endl;
             } else {
                 //std::cout << "Storing value from: " << (kind.data.store.value->name ? kind.data.store.value->name : "unnamed value") << std::endl;
-                value_to_reg[kind.data.store.value] = "t" + std::to_string(val_reg);
+                if(var_flag == 0){
+                    value_to_reg[kind.data.store.value] = "t" + std::to_string(temp_reg++);
+                }else if(var_flag == 1){
+                    value_to_reg[kind.data.store.value] = "t" + std::to_string(val_reg++);
+                }
                 lw_sf_reg = koo_reg[kind.data.store.value];
                 lw_sta_fra = var_offset[lw_sf_reg];
                 sw_sf_reg = kind.data.store.dest->name;
-                sw_sta_fra = var_offset[sw_sf_reg];
-                std::cout << std::left;
-                std::cout << "  " << std::setw(6) << "lw" << std::setw(4) << reg + "," << std::to_string(lw_sta_fra) << "(sp)" << std::endl;
-                std::cout << "  " << std::setw(6) << "sw" << std::setw(4) << reg + "," << std::to_string(sw_sta_fra) << "(sp)" << std::endl;
+                sw_sta_fra = var_offset[sw_sf_reg];            
+                std::cout << "  " << "lw " << reg + ", " << std::to_string(lw_sta_fra) << "(sp)" << std::endl;
+                std::cout << "  " << "sw " << reg + ", " << std::to_string(sw_sta_fra) << "(sp)" << std::endl;
             }
             break;
 
         case KOOPA_RVT_RETURN://return
             if(var_flag == 0){
                 if(kind.data.ret.value->kind.tag == KOOPA_RVT_INTEGER){
-                    std::cout << std::left;
-                    std::cout << "  " << std::setw(6) << "li" << std::setw(4) << "a0," << std::setw(4) << kind.data.ret.value->kind.data.integer.value << std::endl;   
+                    std::cout << "  " << "li " << "a0, " << kind.data.ret.value->kind.data.integer.value << std::endl;   
                 }else{
                     Visit(kind.data.ret.value);//get return value
                     ret_reg = value_to_reg[kind.data.ret.value];
-                    std::cout << std::left;
-                    std::cout << "  " << std::setw(6) << "mv" << std::setw(4) << "a0," << std::setw(4) << ret_reg << std::endl; //use the last register
+                    std::cout << "  " << "mv " << "a0, " << ret_reg << std::endl; //use the last register
                 }
             }
             else if(var_flag == 1){
                 Visit(kind.data.ret.value);//get return value
                 ret_reg = value_to_reg[kind.data.ret.value];
-                lw_sf_reg = koo_reg[kind.data.ret.value];
-                lw_sta_fra = var_offset[lw_sf_reg];
-                std::cout << std::left;
-                std::cout << "  " << std::setw(6) << "lw" << std::setw(4) << "a0," << std::to_string(lw_sta_fra) << "(sp)" << std::endl;
-                std::cout << "  " << std::setw(6) << "addi" << std::setw(4) << "sp," << std::setw(4) << "sp," << std::setw(4) << std::to_string(aligned_stack_size) << std::endl;
+                std::cout << "  " << "lw " << "a0, " << ret_reg << std::endl;
+                std::cout << "  " << "addi " << "sp, " << "sp, " << std::to_string(aligned_stack_size) << std::endl;
             }
             std::cout << "  "<<"ret" << std::endl; //Return expression
             break;
@@ -253,10 +268,13 @@ void Visit(const koopa_raw_value_t &value){
                 int_to_reg[int_val] = "x0";
                 break;
             }else{
-                reg = "t" + std::to_string(temp_reg++);
+                if(var_flag == 0){
+                    reg = "t" + std::to_string(temp_reg++);
+                }else if(var_flag == 1){
+                    reg = "t" + std::to_string(val_reg++);
+                }                
                 int_to_reg[int_val] = reg;
-                std::cout << std::left;
-                std::cout << "  " << std::setw(6) << "li" << std::setw(4) << reg + "," << std::setw(4) << int_val << std::endl;
+                std::cout << "  " << "li " << reg + ", " << int_val << std::endl;
             }
             break;
 
@@ -270,24 +288,24 @@ void Visit(const koopa_raw_value_t &value){
             if (kind.data.binary.lhs->kind.tag == KOOPA_RVT_INTEGER) {
                 lhs_reg = int_to_reg[kind.data.binary.lhs->kind.data.integer.value];
             } else {
+                lhs_reg = value_to_reg[kind.data.binary.lhs];
                 if(var_flag == 1){
-                    reg = "t" + std::to_string(val_reg);
-                    lhs_reg = value_to_reg[kind.data.binary.lhs];
+                    reg = "t" + std::to_string(val_reg++);
                     lw_sf_reg = koo_reg[kind.data.binary.lhs];
                     lw_sta_fra = var_offset[lw_sf_reg];
-                    std::cout << "  " << std::setw(6) << "lw" << std::setw(4) << reg + "," << std::to_string(lw_sta_fra) << "(sp)" << std::endl;
+                    std::cout << "  " << "lw " << reg + ", " << std::to_string(lw_sta_fra) << "(sp)" << std::endl;
                 }
             }
             Visit(kind.data.binary.rhs);
             if (kind.data.binary.rhs->kind.tag == KOOPA_RVT_INTEGER) {
                 rhs_reg = int_to_reg[kind.data.binary.rhs->kind.data.integer.value];
             } else {
+                rhs_reg = value_to_reg[kind.data.binary.rhs];
                 if(var_flag == 1){
-                    reg = "t" + std::to_string(val_reg);
-                    rhs_reg = value_to_reg[kind.data.binary.rhs];
+                    reg = "t" + std::to_string(val_reg++);                    
                     lw_sf_reg = koo_reg[kind.data.binary.rhs];
                     lw_sta_fra = var_offset[lw_sf_reg];
-                    std::cout << "  " << std::setw(6) << "lw" << std::setw(4) << reg + "," << std::to_string(lw_sta_fra) << "(sp)" << std::endl;
+                    std::cout << "  " << "lw " << reg + ", " << std::to_string(lw_sta_fra) << "(sp)" << std::endl;
                 }
             }
 
@@ -296,207 +314,212 @@ void Visit(const koopa_raw_value_t &value){
                     if(var_flag == 0){
                         reg = "t" + std::to_string(temp_reg++);
                         value_to_reg[value] = reg;
-                        std::cout << std::left;
-                        std::cout << "  " << std::setw(6) << "add" << std::setw(4) << reg + "," << std::setw(4) << lhs_reg + "," << std::setw(4) << rhs_reg << std::endl;
+                        std::cout << "  " << "add " << reg + ", " << lhs_reg + ", " << rhs_reg << std::endl;
                         break;
                     }else if(var_flag == 1){
-                        reg = "t" + std::to_string(val_reg);
+                        reg = "t" + std::to_string(val_reg++);
                         value_to_reg[value] = reg;
                         sw_sf_reg = koo_reg[value];
                         sw_sta_fra = var_offset[sw_sf_reg];
-                        std::cout << std::left;
-                        std::cout << "  " << std::setw(6) << "add" << std::setw(4) << reg + "," << std::setw(4) << lhs_reg + "," << std::setw(4) << rhs_reg << std::endl;
-                        std::cout << "  " << std::setw(6) << "sw" << std::setw(4) << reg + "," << std::to_string(sw_sta_fra) << "(sp)" << std::endl;
+                        std::cout << "  " << "add " << reg + ", " << lhs_reg + ", " << rhs_reg << std::endl;
+                        std::cout << "  " << "sw " << reg + ", " << std::to_string(sw_sta_fra) << "(sp)" << std::endl;
                         break;
                     }
                 case KOOPA_RBO_SUB://substraction operation
                     if(var_flag == 0){
                         reg = "t" + std::to_string(temp_reg++);
-                        value_to_reg[value] = reg;                
-                        std::cout << std::left;
-                        std::cout << "  " << std::setw(6) << "sub" << std::setw(4) << reg + "," << std::setw(4) << lhs_reg + "," << std::setw(4) << rhs_reg << std::endl;
+                        value_to_reg[value] = reg;
+                        std::cout << "  " << "sub " << reg + ", " << lhs_reg + ", " << rhs_reg << std::endl;
                         break;
                     }else if(var_flag == 1){
-                        reg = "t" + std::to_string(val_reg);
+                        reg = "t" + std::to_string(val_reg++);
                         value_to_reg[value] = reg;
                         sw_sf_reg = koo_reg[value];
                         sw_sta_fra = var_offset[sw_sf_reg];
-                        std::cout << std::left;
-                        std::cout << "  " << std::setw(6) << "sub" << std::setw(4) << reg + "," << std::setw(4) << lhs_reg + "," << std::setw(4) << rhs_reg << std::endl;
-                        std::cout << "  " << std::setw(6) << "sw" << std::setw(4) << reg + "," << std::to_string(sw_sta_fra) << "(sp)" << std::endl;
+                        std::cout << "  " << "sub " << reg + ", " << lhs_reg + ", " << rhs_reg << std::endl;
+                        std::cout << "  " << "sw " << reg + ", " << std::to_string(sw_sta_fra) << "(sp)" << std::endl;
                         break;
                     }
                 case KOOPA_RBO_MUL://multiplication operation
                     if(var_flag == 0){
                         reg = "t" + std::to_string(temp_reg++);
-                        value_to_reg[value] = reg;                
-                        std::cout << std::left;
-                        std::cout << "  " << std::setw(6) << "mul" << std::setw(4) << reg + "," << std::setw(4) << lhs_reg + "," << std::setw(4) << rhs_reg << std::endl;
+                        value_to_reg[value] = reg;
+                        std::cout << "  " << "mul " << reg + ", " << lhs_reg + ", " << rhs_reg << std::endl;
                         break;
                     }else if(var_flag == 1){
-                        reg = "t" + std::to_string(val_reg);
+                        reg = "t" + std::to_string(val_reg++);
                         value_to_reg[value] = reg;
                         sw_sf_reg = koo_reg[value];
                         sw_sta_fra = var_offset[sw_sf_reg];
-                        std::cout << std::left;
-                        std::cout << "  " << std::setw(6) << "mul" << std::setw(4) << reg + "," << std::setw(4) << lhs_reg + "," << std::setw(4) << rhs_reg << std::endl;
-                        std::cout << "  " << std::setw(6) << "sw" << std::setw(4) << reg + "," << std::to_string(sw_sta_fra) << "(sp)" << std::endl;
+                        std::cout << "  " << "mul " << reg + ", " << lhs_reg + ", " << rhs_reg << std::endl;
+                        std::cout << "  " << "sw " << reg + ", " << std::to_string(sw_sta_fra) << "(sp)" << std::endl;
                         break;
                     }                        
                 case KOOPA_RBO_DIV://division operation
                     if (var_flag == 0){
                         reg = "t" + std::to_string(temp_reg++);
-                        value_to_reg[value] = reg;                
-                        std::cout << std::left;
-                        std::cout << "  " << std::setw(6) << "div" << std::setw(4) << reg + "," << std::setw(4) << lhs_reg + "," << std::setw(4) << rhs_reg << std::endl;
+                        value_to_reg[value] = reg;
+                        std::cout << "  " << "div " << reg + ", " << lhs_reg + ", " << rhs_reg << std::endl;
                         break;
                     }else if(var_flag == 1){
-                        reg = "t" + std::to_string(val_reg);
+                        reg = "t" + std::to_string(val_reg++);
                         value_to_reg[value] = reg;
                         sw_sf_reg = koo_reg[value];
                         sw_sta_fra = var_offset[sw_sf_reg];
-                        std::cout << std::left;
-                        std::cout << "  " << std::setw(6) << "div" << std::setw(4) << reg + "," << std::setw(4) << lhs_reg + "," << std::setw(4) << rhs_reg << std::endl;
-                        std::cout << "  " << std::setw(6) << "sw" << std::setw(4) << reg + "," << std::to_string(sw_sta_fra) << "(sp)" << std::endl;
+                        std::cout << "  " << "div " << reg + ", " << lhs_reg + ", " << rhs_reg << std::endl;
+                        std::cout << "  " << "sw " << reg + ", " << std::to_string(sw_sta_fra) << "(sp)" << std::endl;
                         break;                        
                     }
                 case KOOPA_RBO_MOD://mod operation
                     if (var_flag == 0){
                         reg = "t" + std::to_string(temp_reg++);
-                        value_to_reg[value] = reg;                
-                        std::cout << std::left;
-                        std::cout << "  " << std::setw(6) << "mod" << std::setw(4) << reg + "," << std::setw(4) << lhs_reg + "," << std::setw(4) << rhs_reg << std::endl;
+                        value_to_reg[value] = reg;
+                        std::cout << "  " << "rem " << reg + ", " << lhs_reg + ", " << rhs_reg << std::endl;
                         break;
                     }else if(var_flag == 1){
-                        reg = "t" + std::to_string(val_reg);
+                        reg = "t" + std::to_string(val_reg++);
                         value_to_reg[value] = reg;
                         sw_sf_reg = koo_reg[value];
                         sw_sta_fra = var_offset[sw_sf_reg];
-                        std::cout << std::left;
-                        std::cout << "  " << std::setw(6) << "mod" << std::setw(4) << reg + "," << std::setw(4) << lhs_reg + "," << std::setw(4) << rhs_reg << std::endl;
-                        std::cout << "  " << std::setw(6) << "sw" << std::setw(4) << reg + "," << std::to_string(sw_sta_fra) << "(sp)" << std::endl;
+                        std::cout << "  " << "rem " << reg + ", " << lhs_reg + ", " << rhs_reg << std::endl;
+                        std::cout << "  " << "sw " << reg + ", " << std::to_string(sw_sta_fra) << "(sp)" << std::endl;
                         break;                                  
                     }
 
                 case KOOPA_RBO_EQ://equal operation
                     if (var_flag == 0){
-                        reg = "t" + std::to_string(--temp_reg);//compare the same element
-                        temp_reg++;
+                        reg = "t" + std::to_string(temp_reg++);//compare the same element
+                        //val_reg++;
                         value_to_reg[value] = reg;
-                        std::cout << std::left;
-                        std::cout << "  " << std::setw(6) << "xor" << std::setw(4) << reg + "," << std::setw(4) << lhs_reg + "," << std::setw(4) << rhs_reg << std::endl;
-                        std::cout << "  " << std::setw(6) << "seqz" << std::setw(4) << reg + "," << std::setw(4) << reg << std::endl;
+                        std::cout << "  " << "xor " << reg + ", " << lhs_reg + ", " << rhs_reg << std::endl;
+                        std::cout << "  " << "seqz " << reg + ", " << reg << std::endl;
                         break;
                     }else if (var_flag == 1){
-                        reg = "t" + std::to_string(val_reg);
+                        reg = "t" + std::to_string(val_reg++);
                         value_to_reg[value] = reg;
                         sw_sf_reg = koo_reg[value];
                         sw_sta_fra = var_offset[sw_sf_reg];
-                        std::cout << std::left;
-                        std::cout << "  " << std::setw(6) << "xor" << std::setw(4) << reg + "," << std::setw(4) << lhs_reg + "," << std::setw(4) << rhs_reg << std::endl;
-                        std::cout << "  " << std::setw(6) << "seqz" << std::setw(4) << reg + "," << std::setw(4) << reg << std::endl;
-                        std::cout << "  " << std::setw(6) << "sw" << std::setw(4) << reg + "," << std::to_string(sw_sta_fra) << "(sp)" << std::endl;
+                        std::cout << "  " << "xor " << reg + ", " << lhs_reg + ", " << rhs_reg << std::endl;
+                        std::cout << "  " << "seqz " << reg + ", " << reg << std::endl;
+                        std::cout << "  " << "sw " << reg + ", " << std::to_string(sw_sta_fra) << "(sp)" << std::endl;
                         break;                            
                     }
                 case KOOPA_RBO_NOT_EQ://not equal operation
                     if (var_flag == 0){
-                        reg = "t" + std::to_string(--temp_reg);//compare the same element
-                        temp_reg++;
+                        reg = "t" + std::to_string(temp_reg++);//compare the same element
                         value_to_reg[value] = reg;
-                        std::cout << std::left;
-                        std::cout << "  " << std::setw(6) << "xor" << std::setw(4) << reg + "," << std::setw(4) << lhs_reg + "," << std::setw(4) << rhs_reg << std::endl;
-                        std::cout << "  " << std::setw(6) << "snez" << std::setw(4) << reg + "," << std::setw(4) << reg << std::endl;
+                        std::cout << "  " << "xor " << reg + ", " << lhs_reg + ", " << rhs_reg << std::endl;
+                        std::cout << "  " << "snez " << reg + ", " << reg << std::endl;
                         break;
                     }else if(var_flag == 1){
-                        reg = "t" + std::to_string(val_reg);
+                        reg = "t" + std::to_string(val_reg++);
                         value_to_reg[value] = reg;
                         sw_sf_reg = koo_reg[value];
                         sw_sta_fra = var_offset[sw_sf_reg];
-                        std::cout << std::left;
-                        std::cout << "  " << std::setw(6) << "xor" << std::setw(4) << reg + "," << std::setw(4) << lhs_reg + "," << std::setw(4) << rhs_reg << std::endl;
-                        std::cout << "  " << std::setw(6) << "snez" << std::setw(4) << reg + "," << std::setw(4) << reg << std::endl;
-                        std::cout << "  " << std::setw(6) << "sw" << std::setw(4) << reg + "," << std::to_string(sw_sta_fra) << "(sp)" << std::endl;
+                        std::cout << "  " << "xor " << reg + ", " << lhs_reg + ", " << rhs_reg << std::endl;
+                        std::cout << "  " << "snez " << reg + ", " << reg << std::endl;
+                        std::cout << "  " << "sw " << reg + ", " << std::to_string(sw_sta_fra) << "(sp)" << std::endl;
                         break;                         
                     }
+                    
                 case KOOPA_RBO_LT://less than operation
                     if (var_flag == 0){
-                        reg = "t" + std::to_string(--temp_reg);//compare the same element
-                        temp_reg++;
+                        reg = "t" + std::to_string(temp_reg++);//compare the same element
+                        //val_reg++;
                         value_to_reg[value] = reg;
-                        std::cout << std::left;
-                        std::cout << "  " << std::setw(6) << "slt" << std::setw(4) << reg + "," << std::setw(4) << lhs_reg + "," << std::setw(4) << rhs_reg << std::endl;
+                        std::cout << "  " << "slt " << reg + ", " << lhs_reg + ", " << rhs_reg << std::endl;
                         break;
                     }else if(var_flag == 1){
-                        reg = "t" + std::to_string(val_reg);
+                        reg = "t" + std::to_string(val_reg++);
                         value_to_reg[value] = reg;
                         sw_sf_reg = koo_reg[value];
                         sw_sta_fra = var_offset[sw_sf_reg];
-                        std::cout << std::left;
-                        std::cout << "  " << std::setw(6) << "slt" << std::setw(4) << reg + "," << std::setw(4) << lhs_reg + "," << std::setw(4) << rhs_reg << std::endl;
-                        std::cout << "  " << std::setw(6) << "sw" << std::setw(4) << reg + "," << std::to_string(sw_sta_fra) << "(sp)" << std::endl;
+                        std::cout << "  " << "slt " << reg + ", " << lhs_reg + ", " << rhs_reg << std::endl;
+                        std::cout << "  " << "sw " << reg + ", " << std::to_string(sw_sta_fra) << "(sp)" << std::endl;
                         break;     
                     }
                 case KOOPA_RBO_LE://greater than or equal to operation
                     if (var_flag == 0){
-                        reg = "t" + std::to_string(--temp_reg);//compare the same element
-                        temp_reg++;
+                        reg = "t" + std::to_string(temp_reg++);//compare the same element
+                        //val_reg++;
                         value_to_reg[value] = reg;
-                        std::cout << std::left;
-                        std::cout << "  " << std::setw(6) << "slt" << std::setw(4) << reg + "," << std::setw(4) << lhs_reg + "," << std::setw(4) << rhs_reg << std::endl;
-                        std::cout << "  " << std::setw(6) << "seqz" << std::setw(4) << reg + "," << std::setw(4) << reg << std::endl;
+                        std::cout << "  " << "sgt " << reg + ", " << lhs_reg + ", " << rhs_reg << std::endl;
+                        std::cout << "  " << "seqz " << reg + ", " << reg << std::endl;
                         break;
                     }else if(var_flag == 1){
-                        reg = "t" + std::to_string(val_reg);
+                        reg = "t" + std::to_string(val_reg++);
                         value_to_reg[value] = reg;
                         sw_sf_reg = koo_reg[value];
                         sw_sta_fra = var_offset[sw_sf_reg];
-                        std::cout << std::left;
-                        std::cout << "  " << std::setw(6) << "slt" << std::setw(4) << reg + "," << std::setw(4) << lhs_reg + "," << std::setw(4) << rhs_reg << std::endl;
-                        std::cout << "  " << std::setw(6) << "seqz" << std::setw(4) << reg + "," << std::setw(4) << reg << std::endl;
-                        std::cout << "  " << std::setw(6) << "sw" << std::setw(4) << reg + "," << std::to_string(sw_sta_fra) << "(sp)" << std::endl;
+                        std::cout << "  " << "sgt " << reg + ", " << lhs_reg + ", " << rhs_reg << std::endl;
+                        std::cout << "  " << "seqz " << reg + ", " << reg << std::endl;
+                        std::cout << "  " << "sw " << reg + ", " << std::to_string(sw_sta_fra) << "(sp)" << std::endl;
                         break;   
                     }
                 case KOOPA_RBO_GT://greater than operation
                     if (var_flag == 0){
-                        reg = "t" + std::to_string(--temp_reg);//compare the same element
-                        temp_reg++;
+                        reg = "t" + std::to_string(temp_reg++);//compare the same element
+                        //val_reg++;
                         value_to_reg[value] = reg;
-                        std::cout << std::left;
-                        std::cout << "  " << std::setw(6) << "slt" << std::setw(4) << reg + "," << std::setw(4) << rhs_reg + "," << std::setw(4) << lhs_reg << std::endl;
+                        std::cout << "  " << "slt " << reg + ", " << rhs_reg + ", " << lhs_reg << std::endl;
                         break;
                     }else if(var_flag == 1){
-                        reg = "t" + std::to_string(val_reg);
+                        reg = "t" + std::to_string(val_reg++);
                         value_to_reg[value] = reg;
                         sw_sf_reg = koo_reg[value];
                         sw_sta_fra = var_offset[sw_sf_reg];
-                        std::cout << std::left;
-                        std::cout << "  " << std::setw(6) << "slt" << std::setw(4) << reg + "," << std::setw(4) << rhs_reg + "," << std::setw(4) << lhs_reg << std::endl;
-                        std::cout << "  " << std::setw(6) << "sw" << std::setw(4) << reg + "," << std::to_string(sw_sta_fra) << "(sp)" << std::endl;
+                        std::cout << "  " << "slt " << reg + ", " << rhs_reg + ", " << lhs_reg << std::endl;
+                        std::cout << "  " << "sw " << reg + ", " << std::to_string(sw_sta_fra) << "(sp)" << std::endl;
                         break;
                     }
                 case KOOPA_RBO_GE://greater than or equal to operation
                     if (var_flag == 0){
-                        reg = "t" + std::to_string(--temp_reg);//compare the same element
-                        temp_reg++;
+                        reg = "t" + std::to_string(temp_reg++);//compare the same element
+                        //val_reg++;
                         value_to_reg[value] = reg;
-                        std::cout << std::left;
-                        std::cout << "  " << std::setw(6) << "slt" << std::setw(4) << reg + "," << std::setw(4) << rhs_reg + "," << std::setw(4) << lhs_reg << std::endl;
-                        std::cout << "  " << std::setw(6) << "seqz" << std::setw(4) << reg + "," << std::setw(4) << reg << std::endl;
+                        std::cout << "  " << "sgt " << reg + ", " << rhs_reg + ", " << lhs_reg << std::endl;
+                        std::cout << "  " << "seqz " << reg + ", " << reg << std::endl;
                         break;
                     }else if(var_flag == 1){
-                        reg = "t" + std::to_string(val_reg);
+                        reg = "t" + std::to_string(val_reg++);
                         value_to_reg[value] = reg;
                         sw_sf_reg = koo_reg[value];
                         sw_sta_fra = var_offset[sw_sf_reg];
-                        std::cout << std::left;
-                        std::cout << "  " << std::setw(6) << "slt" << std::setw(4) << reg + "," << std::setw(4) << rhs_reg + "," << std::setw(4) << lhs_reg << std::endl;
-                        std::cout << "  " << std::setw(6) << "seqz" << std::setw(4) << reg + "," << std::setw(4) << reg << std::endl;
-                        std::cout << "  " << std::setw(6) << "sw" << std::setw(4) << reg + "," << std::to_string(sw_sta_fra) << "(sp)" << std::endl;
+                        std::cout << "  " << "sgt " << reg + ", " << rhs_reg + ", " << lhs_reg << std::endl;
+                        std::cout << "  " << "seqz " << reg + ", " << reg << std::endl;
+                        std::cout << "  " << "sw " << reg + ", " << std::to_string(sw_sta_fra) << "(sp)" << std::endl;
                         break;
                     }
             }
             break;
         
+        case KOOPA_RVT_BRANCH:
+            Visit(kind.data.branch.cond);
+            true_bb = kind.data.branch.true_bb->name;
+            true_bb = true_bb.substr(1);
+            false_bb = kind.data.branch.false_bb->name;
+            false_bb = false_bb.substr(1);
+            if (var_flag == 1){
+                if (kind.data.branch.cond->kind.tag == KOOPA_RVT_INTEGER){
+                    reg = int_to_reg[kind.data.branch.cond->kind.data.integer.value];
+                }else{
+                    reg = value_to_reg[kind.data.branch.cond];
+                }
+                lw_sf_reg = koo_reg[kind.data.branch.cond];
+                lw_sta_fra = var_offset[lw_sf_reg];
+                //std::cout << "  " << "lw " << reg + ", " << std::to_string(lw_sta_fra) << "(sp)" << std::endl;
+                std::cout << "  " << "bnez " << reg + ", " << true_bb << std::endl;
+                std::cout << "  " << "j " << false_bb << std::endl;
+                break;
+            }
+        case KOOPA_RVT_JUMP:
+            target_name = kind.data.jump.target->name;
+            target_name = target_name.substr(1);
+            if (var_flag == 1){
+                std::cout << std::left;
+                std::cout << "  " << "j " << target_name << std::endl;
+                break;
+            }
         default:
             std::cout << "Unhandled operation: " << kind.tag << std::endl;
             assert(false);//Unsupported types
