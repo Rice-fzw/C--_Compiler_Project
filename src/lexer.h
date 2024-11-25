@@ -1,5 +1,5 @@
-#ifndef mylexer_h
-#define mylexer_h
+#ifndef lexer_h
+#define lexer_h
 
 #include <string>
 #include <fstream>
@@ -7,10 +7,10 @@
 
 extern YYSTYPE yylval;  // 声明yylval
 
-class Mylexer{
+class Lexer{
     public:
         //constructor
-        Mylexer(std::string s);
+        Lexer(std::string s);
         int yylex();
        
 
@@ -20,25 +20,25 @@ class Mylexer{
          
        
         int IsNumber();
+        int IsOctal();
+        int IsHexadecimal();
         int IsDual();
         
         int IsIdentifierOrKeyword();
         void nextcharacter();
         void blankSpace();
+        void skipcomment();
 
         int IsdualSign();
 
         char current_char = ' '; 
         std::ifstream infile;
-      
         const char DualTable[6] = { '=','>','<','&','|','!' };  
 
 };
 
-// 声明全局lexer对象
-extern Mylexer* lexer;
+extern Lexer* lexer;
 
-// 声明包装函数
 extern "C" {
     int yylex();
 }

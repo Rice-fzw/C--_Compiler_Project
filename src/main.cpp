@@ -6,7 +6,7 @@
 #include <fstream>
 #include <sstream>
 #include "AST.h"
-#include "mylexer.h"
+#include "lexer.h"
 
 using namespace std;
 
@@ -18,7 +18,7 @@ int main(int argc, const char *argv[]) {
   auto input = argv[2];
   auto output = argv[4];
 
-  lexer = new Mylexer(input);
+  lexer = new Lexer(input);
   assert(lexer);
 
   unique_ptr<BaseAST> ast;

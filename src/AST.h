@@ -39,6 +39,12 @@ enum class StmtType {
   Continue, // continue
 };
 
+enum class UnaryExpType {
+    Unary_op,    // +, -, ! 
+    Function,   // 
+    Primary      // PrimaryExp
+};
+
 // Define Option template class
 template<typename T>
 class Option {
@@ -73,32 +79,142 @@ public:
 
 class CompUnitAST : public BaseAST {
 public:
-  std::unique_ptr<BaseAST> func_def;
+    std::vector<std::unique_ptr<BaseAST>> func_defs;  // 存储所有函数定义
 
-  CompUnitAST(std::unique_ptr<BaseAST> func_def) 
-      : func_def(std::move(func_def)) {}
+    CompUnitAST(std::vector<std::unique_ptr<BaseAST>> defs) 
+        : func_defs(std::move(defs)) {}
+    
+    // 添加一个函数用于安全地添加新的函数定义
+    void addFuncDef(BaseAST* func_def) {
+        func_defs.push_back(std::unique_ptr<BaseAST>(func_def));
+    }
 
-  void Dump(int level = 0) const override {
-    indent(level);
-    std::cout << "CompUnit {\n";
-    func_def->Dump(level + 1);
-    indent(level);
-    std::cout << "}\n";
-  }
+    void Dump(int level = 0) const override {
+        indent(level);
+        std::cout << "CompUnit {\n";
+        for (const auto& func : func_defs) {
+            func->Dump(level + 1);
+        }
+        indent(level);
+        std::cout << "}\n";
+    }
 
-  std::string dumpIR(int& tempVarCounter) const override {
-    return func_def->dumpIR(tempVarCounter);
-  }
+    std::string dumpIR(int& tempVarCounter) const override {
+        for (const auto& func : func_defs) {
+            func->dumpIR(tempVarCounter);
+        }
+        return "";
+    }
+};
+
+// 函数参数列表AST节点
+class FuncFParamAST : public BaseAST {
+public:
+    std::string btype;  // 参数类型
+    std::string ident;  // 参数名称
+
+    FuncFParamAST(std::string type, std::string name) 
+        : btype(type), ident(name) {}
+
+    void Dump(int level = 0) const override {
+        indent(level);
+        std::cout << "FuncFParam {\n";
+        indent(level + 1);
+        std::cout << "type: " << btype << "\n";
+        indent(level + 1);
+        std::cout << "ident: " << ident << "\n";
+        indent(level);
+        std::cout << "}\n";
+    }
+
+    std::string dumpIR(int& tempVarCounter) const override {
+        // 在符号表中注册参数
+        std::string param_ptr = "@" + ident;
+        std::string param_name = param_ptr + "_param";
+        mySymboltable* topscope = scopeManager.top();
+        topscope->insertSymbol(ident, btype, "1", param_name);
+        return param_name;
+    }
+};
+
+// 完整的函数参数列表: (int x, int y)
+class FuncFParamListAST : public BaseAST {
+public:
+    std::vector<std::unique_ptr<FuncFParamAST>> params;  // 参数列表
+
+    // 构造函数
+    FuncFParamListAST(std::vector<std::unique_ptr<FuncFParamAST>> params_list)
+        : params(std::move(params_list)) {}
+
+    void Dump(int level = 0) const override {
+        indent(level);
+        std::cout << "FuncFParamList {\n";
+        indent(level + 1);
+        std::cout << "params: [\n";
+        for (const auto& param : params) {
+            param->Dump(level + 2);
+        }
+        indent(level + 1);
+        std::cout << "]\n";
+        indent(level);
+        std::cout << "}\n";
+    }
+
+    std::string dumpIR(int& tempVarCounter) const override {
+        std::string result;
+        for (size_t i = 0; i < params.size(); ++i) {
+            if (i > 0) result += ", ";
+            result += params[i]->dumpIR(tempVarCounter) + ": i32";
+        }
+        return result;
+    }
+};
+
+// 函数调用参数列表: f(1 + 2, 3 * 4)
+class FuncRParamsAST : public BaseAST {
+public:
+    std::vector<std::unique_ptr<BaseAST>> params;  // 实参列表
+
+    // 构造函数
+    FuncRParamsAST(std::vector<std::unique_ptr<BaseAST>> params_list)
+        : params(std::move(params_list)) {}
+
+    void Dump(int level = 0) const override {
+        indent(level);
+        std::cout << "FuncRParams {\n";
+        indent(level + 1);
+        std::cout << "params: [\n";
+        for (const auto& param : params) {
+            param->Dump(level + 2);
+        }
+        indent(level + 1);
+        std::cout << "]\n";
+        indent(level);
+        std::cout << "}\n";
+    }
+
+    std::string dumpIR(int& tempVarCounter) const override {
+        std::string result;
+        for (size_t i = 0; i < params.size(); ++i) {
+            if (i > 0) result += ", ";
+            result += params[i]->dumpIR(tempVarCounter);
+        }
+        return result;
+    }
 };
 
 class FuncDefAST : public BaseAST {
 public:
   std::unique_ptr<BaseAST> func_type;
   std::string ident;
+  Option<std::unique_ptr<FuncFParamListAST>> params;  
   std::unique_ptr<BaseAST> block;
 
   FuncDefAST(std::unique_ptr<BaseAST> func_type, std::string ident, std::unique_ptr<BaseAST> block)
       : func_type(std::move(func_type)), ident(ident), block(std::move(block)) {}
+
+  FuncDefAST(std::unique_ptr<BaseAST> func_type, std::string ident, std::unique_ptr<FuncFParamListAST> params, std::unique_ptr<BaseAST> block) :
+      func_type(std::move(func_type)), ident(ident), params(Option<std::unique_ptr<FuncFParamListAST>>(std::move(params))), block(std::move(block)) {}
 
   void Dump(int level = 0) const override {
     indent(level);
@@ -638,20 +754,50 @@ class PrimaryExpAST : public BaseAST {
 // UnaryExp handel +, -, !
 class UnaryExpAST : public BaseAST {
  public:
+  UnaryExpType type;
   std::string op;
   std::unique_ptr<BaseAST> exp;
+  std::string ident;
+  Option<std::unique_ptr<FuncRParamsAST>> rparams;
 
   UnaryExpAST(std::string op, std::unique_ptr<BaseAST> exp)
-    : op(op), exp(std::move(exp)) {}
+      : type(UnaryExpType::Unary_op), op(op), exp(std::move(exp)) {}
+
+  UnaryExpAST(std::unique_ptr<BaseAST> primary)
+      : type(UnaryExpType::Primary), exp(std::move(primary)) {}
+
+  UnaryExpAST(std::string name)
+      : type(UnaryExpType::Function), ident(name) {}
+
+  UnaryExpAST(std::string name, std::unique_ptr<FuncRParamsAST> params)
+      : type(UnaryExpType::Function), ident(name), 
+        rparams(Option<std::unique_ptr<FuncRParamsAST>>(std::move(params))) {}
 
   void Dump(int level = 0) const override {
-    indent(level);
-    std::cout << "UnaryExp {\n";
-    indent(level + 1);
-    std::cout << "op: " << op << "\n";
-    exp->Dump(level + 1);
-    indent(level);
-    std::cout << "}\n";
+      indent(level);
+      std::cout << "UnaryExp {\n";
+      indent(level + 1);
+
+      switch (type) {
+          case UnaryExpType::Unary_op:
+              std::cout << "op: " << op << "\n";
+              exp->Dump(level + 1);
+              break;
+
+          case UnaryExpType::Primary:
+              exp->Dump(level + 1);
+              break;
+
+          case UnaryExpType::Function:
+              std::cout << "function: " << ident << "\n";
+              if (rparams.hasValue()) {
+                  rparams.getValue()->Dump(level + 1);
+              }
+              break;
+      }
+
+      indent(level);
+      std::cout << "}\n";
   }
 
   std::string dumpIR(int& tempVarCounter) const override {
@@ -674,6 +820,64 @@ class UnaryExpAST : public BaseAST {
     if (op == "!") result = !result;
     return result;
   }
+    // 新：
+    //   std::string dumpIR(int& tempVarCounter) const override {
+    //     switch (type) {
+    //         case UNARY_OP: {
+    //             std::string expr_ir = exp->dumpIR(tempVarCounter);
+    //             if (op == "+") return expr_ir;
+                
+    //             std::string temp_var = "%" + std::to_string(tempVarCounter++);
+    //             if (op == "-") {
+    //                 std::cout << "  " << temp_var << " = sub 0, " << expr_ir << "\n";
+    //             } else if (op == "!") {
+    //                 std::cout << "  " << temp_var << " = eq " << expr_ir << ", 0\n";
+    //             }
+    //             return temp_var;
+    //         }
+
+    //         case FUNC_CALL: {
+    //             std::string temp_var = "%" + std::to_string(tempVarCounter++);
+    //             std::cout << "  " << temp_var << " = call @" << ident << "(";
+                
+    //             if (rparams.hasValue()) {
+    //                 std::cout << rparams.getValue()->dumpIR(tempVarCounter);
+    //             }
+                
+    //             std::cout << ")\n";
+    //             return temp_var;
+    //         }
+
+    //         case PRIMARY:
+    //             return exp->dumpIR(tempVarCounter);
+    //     }
+        
+    //     assert(false);
+    //     return "";
+    // }
+
+    // virtual int Calc() const override {
+    //     switch (type) {
+    //         case UNARY_OP: {
+    //             int result = exp->Calc();
+    //             if (op == "-") result = -result;
+    //             if (op == "+") result = result;
+    //             if (op == "!") result = !result;
+    //             return result;
+    //         }
+
+    //         case FUNC_CALL:
+    //             // 编译时不能计算函数调用
+    //             assert(false);
+    //             return 0;
+
+    //         case PRIMARY:
+    //             return exp->Calc();
+    //     }
+
+    //     assert(false);
+    //     return 0;
+    // }
 };
 
 // AddExp handel +, -
@@ -1294,34 +1498,4 @@ public:
         return 0;
     }
 };
-
-class PutintAST : public BaseAST {
-public:
-    std::unique_ptr<BaseAST> exp;  // 要打印的表达式
-
-    // Constructor
-    PutintAST(BaseAST* exp) : exp(std::unique_ptr<BaseAST>(exp)) {}
-
-    void Dump(int level = 0) const override {
-        indent(level);
-        std::cout << "Putint {\n";
-        exp->Dump(level + 1);
-        indent(level);
-        std::cout << "}\n";
-    }
-
-    std::string dumpIR(int& tempVarCounter) const override {
-        // 先计算表达式的值
-        std::string exp_result = exp->dumpIR(tempVarCounter);
-        
-        // 生成 putint 调用
-        std::cout << "  call @putint(" << exp_result << ")\n";
-        
-        // putint的返回值（如果需要的话）
-        std::string result = "%" + std::to_string(tempVarCounter++);
-        std::cout << "  " << result << " = ret\n";
-        return result;
-    }
-};
-
 #endif

@@ -1,13 +1,11 @@
 #include <string>
 #include <fstream>
 #include <iostream>
-#include "mylexer.h"
+#include "lexer.h"
 using namespace std;
 
-// 定义全局lexer对象
-Mylexer* lexer = nullptr;
+Lexer* lexer = nullptr;
 
-// 定义包装函数
 extern "C" int yylex() {
     if (lexer != nullptr) {
         return lexer->yylex();
@@ -16,20 +14,20 @@ extern "C" int yylex() {
 }
 
 //constructor: open the source file
-Mylexer::Mylexer(string name){
-    infile.open(name, ios::in); // open file 
+Lexer::Lexer(string name){
+    infile.open(name, ios::in); 
     if (!infile) {
     cerr << "unable to open file" << endl;
     }
 }
 
 //To read the next character
-void Mylexer::nextcharacter(){
+void Lexer::nextcharacter(){
      current_char = infile.get();
 }
 
 //to judge whether current character is a letter or not
-bool Mylexer::IsLetter(char ch){
+bool Lexer::IsLetter(char ch){
     if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')){
         return true;
     }
@@ -37,7 +35,7 @@ bool Mylexer::IsLetter(char ch){
 }  
 
 //to judge whether current character is a digit or not
-bool Mylexer::IsDigit(char ch){
+bool Lexer::IsDigit(char ch){
     if (ch >= '0'&& ch <= '9'){
         return true;
     }
@@ -45,17 +43,22 @@ bool Mylexer::IsDigit(char ch){
 }
 
 //skip a set of blankspace
-void Mylexer::blankSpace(){
-    
+void Lexer::blankSpace(){  
     while (current_char==' ') {
         nextcharacter();
     }
 }
 
 //to judge whether current character is a number or not
-int Mylexer::IsNumber(){
-     std::string num_str;
+int Lexer::IsNumber(){
+    string num_str;
     
+    //judge possible Hexadecimal or Octal
+    if (current_char == '0') {
+        if (IsHexadecimal() != -1) return IsHexadecimal();
+        if (IsOctal() != -1) return IsOctal();
+    }
+
     // to read valid a string of digits
     while (IsDigit(current_char)) {
         num_str += current_char;
@@ -67,9 +70,49 @@ int Mylexer::IsNumber(){
     return INT_CONST;
 }
 
+// to judge whether block of character is a octalNumber or not
+int Lexer::IsOctal() {
+    string octal_str;
+    if (current_char == '0') {
+        octal_str += current_char;
+        nextcharacter();
+        while (current_char >= '0' && current_char <= '7') {
+            octal_str += current_char;
+            nextcharacter();
+        }
+        yylval.int_val = std::stoi(octal_str, nullptr, 8); 
+        return INT_CONST; 
+    }
+    return -1; 
+}
 
+// to judge whether block of character is a hexadecimalNumber or not
+int Lexer::IsHexadecimal() {
+    string hex_str;
+    if (current_char == '0') {
+        hex_str += current_char;
+        nextcharacter();
+        if (current_char == 'x' || current_char == 'X') {
+            hex_str += current_char;
+            nextcharacter();
+            while ((current_char >= '0' && current_char <= '9') || 
+                   (current_char >= 'a' && current_char <= 'f') || 
+                   (current_char >= 'A' && current_char <= 'F')) {
+                hex_str += current_char;
+                nextcharacter();
+            }
+            yylval.int_val = std::stoi(hex_str, nullptr, 16); 
+            return INT_CONST; 
+        } else {
+            infile.putback(current_char);
+            current_char = '0';
+        }
+    }
+    return -1;
+}
 
-int Mylexer::IsIdentifierOrKeyword(){
+//to judge whether block of character is a identifier or not
+int Lexer::IsIdentifierOrKeyword(){
     string identifier;
 
     //read the identifier
@@ -107,17 +150,25 @@ int Mylexer::IsIdentifierOrKeyword(){
         return BREAK;
     }
 
-     if (identifier == "continue") {
+    if (identifier == "continue") {
         return CONTINUE;
     }
-    
-    
+
+    // if (identifier == "putint") {
+    //     return PUTINT;
+    // }
+
+    if (identifier == "void") {
+        return VOID;
+    }
+
     // send it to yylval in bison
     yylval.str_val = new std::string(identifier);
     return IDENT;
 }
 
-int Mylexer::IsdualSign(){
+//to judge whether it is a possible dualsign
+int Lexer::IsdualSign(){
     for (int j = 0; j < 6; j++){
         if (current_char == DualTable[j]){
             return DualTable[j];
@@ -126,10 +177,9 @@ int Mylexer::IsdualSign(){
     return -1;
 }
 
-int Mylexer::IsDual(){
-
-    int LEGENE[3][2]={{1,LE},{2,GE},{5,NE}};
-
+//to judge whether  block of character is a possible dual
+int Lexer::IsDual(){
+    int LEGENE[3][2]={{1,GE},{2,LE},{5,NE}};
     for (int i = 0; i < 3; i++){
         if(IsdualSign()==DualTable[LEGENE[i][0]]){
             nextcharacter();
@@ -138,12 +188,11 @@ int Mylexer::IsDual(){
                 return LEGENE[i][1];
             }else{
                 return DualTable[LEGENE[i][0]];
-                } 
+            } 
         }    
     }
 
     int EqualAndOr[3][2]={{0,EQ},{3,LAND},{4,LOR}};
-
     for (int i = 0; i < 3; i++){
         if(IsdualSign()==DualTable[EqualAndOr[i][0]]){
             nextcharacter();
@@ -152,23 +201,55 @@ int Mylexer::IsDual(){
                 return EqualAndOr[i][1];
             }else{
                 return '=';
-                } 
+            } 
         }    
     }
     return 0;
 
 }
 
+//to skip comment(single/block)
+void Lexer::skipcomment() {
+    if (current_char == '/') {
+        nextcharacter();
+        if(current_char=='/'){
+            while(current_char!= '/n'&&current_char!=EOF){
+                nextcharacter();
+            }
+        }else if(current_char == '*'){
+            while(true){
+                if(current_char==EOF){
+                    cout<<"error! uncompleted loop"<<endl;
+                }else if(current_char=='*'){
+                        nextcharacter();
+                        if(current_char=='/'){
+                            nextcharacter();
+                            break;
+                        }
+                    }else{
+                        nextcharacter();
+                    }              
+            }
+        }else{
+            infile.putback(current_char);
+            current_char = '/';
+        }
+    }
+}
 
-int Mylexer::yylex() {
+//the main function that bison receives
+int Lexer::yylex() {
     // skip a set of blankspace
     blankSpace();
     
+    //check whether is a comment
+    skipcomment();
+
     // end of mylex work
     if (current_char == EOF) {
         return 0;
     }
-    
+
     // check whether is a identifier or keyword
     if (IsLetter(current_char) || current_char == '_' ||current_char == '$') {
         return IsIdentifierOrKeyword();

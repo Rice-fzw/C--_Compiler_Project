@@ -4,7 +4,7 @@
   #include <iostream>
   #include <vector>
   #include "AST.h"
-  #include "mylexer.h"
+  #include "lexer.h"
 }
 
 %{
@@ -13,7 +13,7 @@
 #include <iostream>
 #include <vector>
 #include "AST.h"
-#include "mylexer.h"
+#include "lexer.h"
 
 // 声明 lexer 函数和错误处理函数
 int yylex();
@@ -33,7 +33,7 @@ using namespace std;
 }
 
 //关键字Token
-%token INT RETURN CONST
+%token INT RETURN CONST VOID
 %token IF ELSE WHILE BREAK CONTINUE
 //比较运算符Token
 %token LE GE EQ NE
@@ -60,27 +60,41 @@ using namespace std;
 %type <int_val> Number
 %type <ast_val> ConstDecl ConstDef ConstDefList ConstInitVal Decl ConstExp
 %type <ast_val> VarDecl VarDefList VarDef InitVal
+%type <ast_val> FuncFParam FuncFParams FuncRParams
 %type <str_val> BType LVal
 
 
 %%
 
 CompUnit
-  : FuncDef {
-    auto func_def = std::unique_ptr<BaseAST>($1);
-    ast = std::unique_ptr<BaseAST>(new CompUnitAST(std::move(func_def)));
-  }
-  ;
+    : FuncDef {
+        // Single function
+        auto comp_unit = new CompUnitAST(std::vector<std::unique_ptr<BaseAST>>());
+        comp_unit->addFuncDef($1);
+        ast = std::unique_ptr<BaseAST>(comp_unit);
+    }
+    | CompUnit FuncDef {
+        // Multiple function
+        auto comp_unit = static_cast<CompUnitAST*>(ast.get());
+        comp_unit->addFuncDef($2);
+    }
+    ;
 
 FuncDef
   : FuncType IDENT '(' ')' Block {
     $$ = new FuncDefAST(std::unique_ptr<BaseAST>($1), *$2, std::unique_ptr<BaseAST>($5));
+  }
+  | FuncType IDENT '(' FuncFParams ')' Block {
+    $$ = new FuncDefAST(std::unique_ptr<BaseAST>($1), *$2, std::unique_ptr<FuncFParamListAST>(static_cast<FuncFParamListAST*>($4)), std::unique_ptr<BaseAST>($6));
   }
   ;
 
 FuncType
   : INT {
     $$ = new FuncTypeAST("int");
+  }
+  | VOID {
+    $$ = new FuncTypeAST("void");
   }
   ;
 
@@ -217,6 +231,12 @@ UnaryExp
   | UnaryOp UnaryExp {
     $$ = new UnaryExpAST(*$1, std::unique_ptr<BaseAST>($2));
   }
+  | IDENT '(' FuncRParams ')' {
+      $$ = new UnaryExpAST(*$1, std::unique_ptr<FuncRParamsAST>(static_cast<FuncRParamsAST*>($3)));
+  }
+  | IDENT '(' ')' { 
+      $$ = new UnaryExpAST(*$1); 
+  }
   ;
 
 PrimaryExp
@@ -316,6 +336,9 @@ BType
   : INT {
     $$ = new string("int");
   }
+  | VOID {
+    $$ = new string("void");
+  }
   ;
 
 ConstDef
@@ -344,38 +367,71 @@ LVal
   ;
 
 VarDecl
-    : VarDefList ';' {
-        $$ = $1; // Use VarDefList as AST
-    }
-    ;
+  : VarDefList ';' {
+      $$ = $1; // Use VarDefList as AST
+  }
+  ;
 
 VarDefList
-    : BType VarDef { // Single variable: int x; int x = 1;
-        std::vector<std::unique_ptr<VarDefAST>> defs;
-        defs.push_back(std::unique_ptr<VarDefAST>(static_cast<VarDefAST*>($2)));
-        $$ = new VarDeclAST(*$1, std::move(defs));
-    }
-    | VarDefList ',' VarDef { //Multiple variables: int x = 1, y = 2;
-        auto decl = static_cast<VarDeclAST*>($1);
-        decl->var_defs.push_back(std::unique_ptr<VarDefAST>(static_cast<VarDefAST*>($3)));
-        $$ = decl;
-    }
-    ;
+  : BType VarDef { // Single variable: int x; int x = 1;
+      std::vector<std::unique_ptr<VarDefAST>> defs;
+      defs.push_back(std::unique_ptr<VarDefAST>(static_cast<VarDefAST*>($2)));
+      $$ = new VarDeclAST(*$1, std::move(defs));
+  }
+  | VarDefList ',' VarDef { //Multiple variables: int x = 1, y = 2;
+      auto decl = static_cast<VarDeclAST*>($1);
+      decl->var_defs.push_back(std::unique_ptr<VarDefAST>(static_cast<VarDefAST*>($3)));
+      $$ = decl;
+  }
+  ;
 
 VarDef
-    : IDENT {
-        $$ = new VarDefAST(*$1);
-    }
-    | IDENT '=' InitVal {
-        $$ = new VarDefAST("=", *$1, std::unique_ptr<BaseAST>($3));
-    }
-    ;
+  : IDENT {
+      $$ = new VarDefAST(*$1);
+  }
+  | IDENT '=' InitVal {
+      $$ = new VarDefAST("=", *$1, std::unique_ptr<BaseAST>($3));
+  }
+  ;
 
 InitVal
-    : Exp {
-        $$ = $1;
-    }
-    ;
+  : Exp {
+      $$ = $1;
+  }
+  ;
+
+FuncFParam
+  : BType IDENT {
+      $$ = new FuncFParamAST(*$1, *$2);
+  }
+  ;
+
+FuncFParams
+  : FuncFParam {
+      auto param_list = new FuncFParamListAST(std::vector<std::unique_ptr<FuncFParamAST>>());
+      param_list->params.push_back(std::unique_ptr<FuncFParamAST>(static_cast<FuncFParamAST*>($1)));
+      $$ = param_list;
+  }
+  | FuncFParams ',' FuncFParam {
+      auto param_list = static_cast<FuncFParamListAST*>($1);
+      param_list->params.push_back(std::unique_ptr<FuncFParamAST>(static_cast<FuncFParamAST*>($3)));
+      $$ = param_list;
+  }
+  ;
+
+FuncRParams
+  : Exp {
+      // 单个参数
+      auto params = new FuncRParamsAST(std::vector<std::unique_ptr<BaseAST>>());
+      params->params.push_back(std::unique_ptr<BaseAST>($1));
+      $$ = params;
+  }
+  | FuncRParams ',' Exp {
+      // 多个参数
+      auto params = static_cast<FuncRParamsAST*>($1);
+      params->params.push_back(std::unique_ptr<BaseAST>($3));
+      $$ = params;
+  }
 %%
 
 void yyerror(unique_ptr<BaseAST> &ast, const char *s) {
