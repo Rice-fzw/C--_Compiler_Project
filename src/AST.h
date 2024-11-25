@@ -68,11 +68,15 @@ public:
   virtual ~BaseAST() = default;
   virtual void Dump(int level = 0) const = 0;
   virtual std::string dumpIR(int& tempVarCounter) const = 0;  // Modify to IR method with temporary variable counter
+  virtual int Calc() const { assert(false); return -1; }
 };
 
 class CompUnitAST : public BaseAST {
 public:
   std::unique_ptr<BaseAST> func_def;
+
+  CompUnitAST(std::unique_ptr<BaseAST> func_def) 
+      : func_def(std::move(func_def)) {}
 
   void Dump(int level = 0) const override {
     indent(level);
@@ -92,6 +96,9 @@ public:
   std::unique_ptr<BaseAST> func_type;
   std::string ident;
   std::unique_ptr<BaseAST> block;
+
+  FuncDefAST(std::unique_ptr<BaseAST> func_type, std::string ident, std::unique_ptr<BaseAST> block)
+      : func_type(std::move(func_type)), ident(ident), block(std::move(block)) {}
 
   void Dump(int level = 0) const override {
     indent(level);
@@ -125,6 +132,8 @@ public:
 class FuncTypeAST : public BaseAST {
 public:
   std::string type;
+
+  FuncTypeAST(std::string type) : type(type) {}
 
   void Dump(int level = 0) const override {
     indent(level);
@@ -526,6 +535,9 @@ public:
 class ExpAST : public BaseAST {
 public:
     std::unique_ptr<BaseAST> l_or_exp;
+
+    ExpAST(std::unique_ptr<BaseAST> l_or_exp): l_or_exp(std::move(l_or_exp)) {}
+
     void Dump(int level=0) const override
     {
         std::cout << "ExpAST { ";
@@ -536,6 +548,11 @@ public:
     {
 //        std::cout<<"here";
         return l_or_exp->dumpIR(tempVarCounter);
+    }
+    virtual int Calc() const override
+    {
+//        std::cout<<"here";
+        return l_or_exp->Calc();
     }
 };
 
@@ -578,7 +595,6 @@ class PrimaryExpAST : public BaseAST {
     std::cout << "}\n";
   }
 
-  //新生成的DumpIR
   std::string dumpIR(int& tempVarCounter) const override {
     if (type == PrimaryExpType::number) {
       return std::to_string(number);
@@ -600,6 +616,23 @@ class PrimaryExpAST : public BaseAST {
     }
     return "";
   }
+
+  virtual int Calc() const override{
+    if (type == PrimaryExpType::number) {
+      return number;
+    } else if (type == PrimaryExpType::exp) {
+      return exp->Calc();
+    } else if (type == PrimaryExpType::LVal) {
+      auto varpit = scopeManager.lookupSymbol(LVal);
+      std::string var_type= varpit.value() -> type;
+      std::string var_nam= varpit.value() -> value;
+      if (var_type == "int"){
+          return std::stoi(var_nam);
+      }
+      return std::stoi(var_nam);
+    }
+    assert(false);
+  }
 };
 
 // UnaryExp handel +, -, !
@@ -607,6 +640,9 @@ class UnaryExpAST : public BaseAST {
  public:
   std::string op;
   std::unique_ptr<BaseAST> exp;
+
+  UnaryExpAST(std::string op, std::unique_ptr<BaseAST> exp)
+    : op(op), exp(std::move(exp)) {}
 
   void Dump(int level = 0) const override {
     indent(level);
@@ -629,6 +665,14 @@ class UnaryExpAST : public BaseAST {
     else if (op == "!") std::cout << "  " << tempVar << " = eq " << ir_exp << ", 0\n";
     else assert(false);
     return tempVar;
+  }
+
+  virtual int Calc() const override{
+    int result = exp->Calc();
+    if (op == "-") result = -result;
+    if (op == "+") result = result;
+    if (op == "!") result = !result;
+    return result;
   }
 };
 
@@ -685,6 +729,18 @@ class AddExpAST : public BaseAST {
     }
 //    std::cout<<"asdf\n";
     return left_ir;
+  }
+
+  virtual int Calc() const override{
+    int result = 1;
+    if (!right_AST) result = left_AST->Calc();
+    else{
+      int left_result = left_AST->Calc();
+      int right_result = right_AST->Calc();
+      if (op == "+") result = left_result + right_result;
+      if (op == "-") result = left_result - right_result;
+    }
+    return result;
   }
 };
 
@@ -743,6 +799,19 @@ class MulExpAST : public BaseAST {
       return tempVar;
     }
     return left_ir;
+  }
+
+  virtual int Calc() const override{
+    int result = 1;
+    if (!right_AST) result = left_AST->Calc();
+    else{
+      int left_result = left_AST->Calc();
+      int right_result = right_AST->Calc();
+      if (op == "*") result = left_result * right_result;
+      if (op == "/") result = left_result / right_result;
+      if (op == "%") result = left_result % right_result;
+    }
+    return result;
   }
 };
 
@@ -804,6 +873,20 @@ class RelExpAST : public BaseAST {
     }
     return left_result;
   }
+
+  virtual int Calc() const override{
+    int result = 1;
+    if (!right_AST) result = left_AST->Calc();
+    else{
+      int left_result = left_AST->Calc();
+      int right_result = right_AST->Calc();
+      if (op == ">") result = left_result > right_result;
+      if (op == ">=") result = left_result >= right_result;
+      if (op == "<") result = left_result < right_result;
+      if (op == "<=") result = left_result <= right_result;
+    }
+    return result;
+  }
 };
 
 // EqExpAST handle ==, !=
@@ -856,6 +939,18 @@ class EqExpAST : public BaseAST {
       return tempVar;
     }
     return left_result;
+  }
+
+  virtual int Calc() const override{
+    int result = 1;
+    if (!right_AST) result = left_AST->Calc();
+    else{
+      int left_result = left_AST->Calc();
+      int right_result = right_AST->Calc();
+      if (op == "==") result = left_result == right_result;
+      if (op == "!=") result = left_result != right_result;
+    }
+    return result;
   }
 };
 
@@ -934,6 +1029,16 @@ class LAndExpAST : public BaseAST {
       std::cout << "  " << result_var << " = load " << result_var_ptr << std::endl;
     }
     return result_var;
+  }
+  virtual int Calc() const override{
+    int result = 1;
+    if (!right_AST) result = left_AST->Calc();
+    else{
+      int left_result = left_AST->Calc();
+      if (left_result == 0) return 0;
+      result = right_AST->Calc() != 0;
+    }
+    return result;
   }
 };
 
@@ -1016,6 +1121,17 @@ class LOrExpAST : public BaseAST {
     }
     return result_var;
   }
+
+  virtual int Calc() const override{
+    int result = 1;
+    if (!right_AST) result = left_AST->Calc();
+    else{
+      int left_result = left_AST->Calc();
+      if (left_result)return 1;
+      result = right_AST->Calc() != 0;
+    }
+    return result;
+  }
 };
 
 // Single constant definition: x = 1
@@ -1049,6 +1165,11 @@ public:
         topscope -> insertSymbol(ident, "const", "1", init_val_ir);
         //chk[ident] = init_val_ir;
         return init_val_ir;
+    }
+
+    virtual int Calc() const override{
+      int init_val_ir = init_val->Calc();
+      return 0;
     }
 };
 
@@ -1164,6 +1285,13 @@ public:
             def->dumpIR(tempVarCounter);
         }
         return "";
+    }
+
+    virtual int Calc() const override{
+        for (const auto& def : var_defs) {
+            def->Calc();
+        }
+        return 0;
     }
 };
 

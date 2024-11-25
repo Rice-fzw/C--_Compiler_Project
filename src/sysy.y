@@ -60,7 +60,6 @@ using namespace std;
 %type <int_val> Number
 %type <ast_val> ConstDecl ConstDef ConstDefList ConstInitVal Decl ConstExp
 %type <ast_val> VarDecl VarDefList VarDef InitVal
-%type <ast_val> Putint
 %type <str_val> BType LVal
 
 
@@ -68,27 +67,20 @@ using namespace std;
 
 CompUnit
   : FuncDef {
-    auto comp_unit = make_unique<CompUnitAST>();
-    comp_unit->func_def = unique_ptr<BaseAST>($1);
-    ast = move(comp_unit);
+    auto func_def = std::unique_ptr<BaseAST>($1);
+    ast = std::unique_ptr<BaseAST>(new CompUnitAST(std::move(func_def)));
   }
   ;
 
 FuncDef
   : FuncType IDENT '(' ')' Block {
-    auto ast = new FuncDefAST();
-    ast->func_type = unique_ptr<BaseAST>($1);
-    ast->ident = *unique_ptr<string>($2);
-    ast->block = unique_ptr<BaseAST>($5);
-    $$ = ast;
+    $$ = new FuncDefAST(std::unique_ptr<BaseAST>($1), *$2, std::unique_ptr<BaseAST>($5));
   }
   ;
 
 FuncType
   : INT {
-    auto ast = new FuncTypeAST();
-    ast->type = "int";
-    $$ = ast;
+    $$ = new FuncTypeAST("int");
   }
   ;
 
@@ -128,9 +120,6 @@ Stmt
     }
     | CONTINUE ';' {
         $$ = StmtAST::makeContinue();
-    }
-    | PUTINT '(' Exp ')' ';' {  // putint
-        $$ = new PutintAST($3);
     }
     ;
 
@@ -226,10 +215,7 @@ UnaryExp
     $$ = $1;
   }
   | UnaryOp UnaryExp {
-    auto ast = new UnaryExpAST();
-    ast->op = *unique_ptr<string>($1);
-    ast->exp = unique_ptr<BaseAST>($2);
-    $$ = ast;
+    $$ = new UnaryExpAST(*$1, std::unique_ptr<BaseAST>($2));
   }
   ;
 
@@ -325,6 +311,7 @@ ConstDefList
     $$ = decl;
   }
   ;
+
 BType
   : INT {
     $$ = new string("int");
