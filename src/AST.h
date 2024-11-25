@@ -79,29 +79,29 @@ public:
 
 class CompUnitAST : public BaseAST {
 public:
-    std::vector<std::unique_ptr<BaseAST>> func_defs;  // 存储所有函数定义
+    std::vector<std::unique_ptr<BaseAST>> items;  // Decl or Func_def
 
-    CompUnitAST(std::vector<std::unique_ptr<BaseAST>> defs) 
-        : func_defs(std::move(defs)) {}
+    CompUnitAST(std::vector<std::unique_ptr<BaseAST>> items) 
+        : items(std::move(items)) {}
     
     // 添加一个函数用于安全地添加新的函数定义
-    void addFuncDef(BaseAST* func_def) {
-        func_defs.push_back(std::unique_ptr<BaseAST>(func_def));
+    void addItem(BaseAST* item) {
+        items.push_back(std::unique_ptr<BaseAST>(item));
     }
 
     void Dump(int level = 0) const override {
         indent(level);
         std::cout << "CompUnit {\n";
-        for (const auto& func : func_defs) {
-            func->Dump(level + 1);
+        for (const auto& item : items) {
+            item->Dump(level + 1);
         }
         indent(level);
         std::cout << "}\n";
     }
 
     std::string dumpIR(int& tempVarCounter) const override {
-        for (const auto& func : func_defs) {
-            func->dumpIR(tempVarCounter);
+        for (const auto& item : items) {
+            item->dumpIR(tempVarCounter);
         }
         return "";
     }
@@ -203,48 +203,6 @@ public:
     }
 };
 
-class FuncDefAST : public BaseAST {
-public:
-  std::unique_ptr<BaseAST> func_type;
-  std::string ident;
-  Option<std::unique_ptr<FuncFParamListAST>> params;  
-  std::unique_ptr<BaseAST> block;
-
-  FuncDefAST(std::unique_ptr<BaseAST> func_type, std::string ident, std::unique_ptr<BaseAST> block)
-      : func_type(std::move(func_type)), ident(ident), block(std::move(block)) {}
-
-  FuncDefAST(std::unique_ptr<BaseAST> func_type, std::string ident, std::unique_ptr<FuncFParamListAST> params, std::unique_ptr<BaseAST> block) :
-      func_type(std::move(func_type)), ident(ident), params(Option<std::unique_ptr<FuncFParamListAST>>(std::move(params))), block(std::move(block)) {}
-
-  void Dump(int level = 0) const override {
-    indent(level);
-    std::cout << "FuncDef {\n";
-    func_type->Dump(level + 1);
-    indent(level + 1);
-    std::cout << "ident: " << ident << "\n";
-    block->Dump(level + 1);
-    indent(level);
-    std::cout << "}\n";
-  }
-
-  std::string dumpIR(int& tempVarCounter) const override {
-    // Output the IR code defined by the function
-    std::cout << "fun @" << ident << "()";
-    if (func_type->dumpIR(tempVarCounter) == "int") {
-      std::cout << ": i32 ";
-    }
-    std::cout << "{\n";
-    std::cout << "%entry:\n";
-    // Obtain the IR expression of the block
-    std::string block_ir = block->dumpIR(tempVarCounter); 
-    if (block_ir != "ret") {
-      std::cout << "  ret 0\n";  // Default return 0
-    }
-    std::cout << "}\n";
-    return "";
-  }
-};
-
 class FuncTypeAST : public BaseAST {
 public:
   std::string type;
@@ -259,6 +217,107 @@ public:
   std::string dumpIR(int& tempVarCounter) const override {
     return type;  // Return type information, such as' int 'or' void '
   }
+};
+
+class FuncDefAST : public BaseAST {
+public:
+  std::unique_ptr<BaseAST> func_type;
+  std::string ident;
+  Option<std::unique_ptr<FuncFParamListAST>> params;  
+  std::unique_ptr<BaseAST> block;
+
+  // Constructor for function without parameters
+  FuncDefAST(std::unique_ptr<BaseAST> func_type, std::string ident, std::unique_ptr<BaseAST> block)
+      : ident(ident), block(std::move(block)) {
+    // Convert BType to FuncType if needed
+    if (auto* btype = dynamic_cast<std::string*>(func_type.get())) {
+      this->func_type = std::unique_ptr<BaseAST>(new FuncTypeAST(*btype));
+    } else {
+      this->func_type = std::move(func_type);
+    }
+  }
+
+  // Constructor for function with parameters
+  FuncDefAST(std::unique_ptr<BaseAST> func_type, std::string ident, 
+             std::unique_ptr<FuncFParamListAST> params, std::unique_ptr<BaseAST> block)
+      : ident(ident), 
+        params(Option<std::unique_ptr<FuncFParamListAST>>(std::move(params))), 
+        block(std::move(block)) {
+    // Convert BType to FuncType if needed
+    if (auto* btype = dynamic_cast<std::string*>(func_type.get())) {
+      this->func_type = std::unique_ptr<BaseAST>(new FuncTypeAST(*btype));
+    } else {
+      this->func_type = std::move(func_type);
+    }
+  }
+
+  void Dump(int level = 0) const override {
+    indent(level);
+    std::cout << "FuncDef {\n";
+    func_type->Dump(level + 1);
+    indent(level + 1);
+    std::cout << "ident: " << ident << "\n";
+    if (params.hasValue()) {
+      params.getValue()->Dump(level + 1);
+    }
+    block->Dump(level + 1);
+    indent(level);
+    std::cout << "}\n";
+  }
+
+  std::string dumpIR(int& tempVarCounter) const override {
+  // Output function declaration
+  std::cout << "fun @" << ident << "(";
+  
+  // Output parameters if they exist
+  if (params.hasValue()) {
+      std::cout << params.getValue()->dumpIR(tempVarCounter);
+  }
+  
+  // Output return type
+  std::cout << ")";
+  std::string return_type = func_type->dumpIR(tempVarCounter);
+  if (return_type == "int") {
+    std::cout << ": i32";
+  }
+  
+  // Function body
+  std::cout << " {\n%entry:\n";
+  
+  // Create new scope for the function
+  mySymboltable newtbl;
+  scopeManager.insertScope(newtbl);
+  
+  // Generate the IR for the function body
+  std::string block_ir = block->dumpIR(tempVarCounter);
+  
+  // Add default return if needed
+  if (block_ir != "ret") {
+    std::cout << "  ret 0\n";
+  }
+  
+  // Exit function scope
+  scopeManager.exitScope();
+  
+  std::cout << "}\n";
+  return "";
+}
+  // std::string dumpIR(int& tempVarCounter) const override {
+  //   // Output the IR code defined by the function
+  //   std::cout << "fun @" << ident << "()";
+  //   if (func_type->dumpIR(tempVarCounter) == "int") {
+  //     std::cout << ": i32 ";
+  //   }
+  //   std::cout << "{\n";
+  //   std::cout << "%entry:\n";
+  //   // Obtain the IR expression of the block
+  //   std::string block_ir = block->dumpIR(tempVarCounter); 
+  //   if (block_ir != "ret") {
+  //     std::cout << "  ret 0\n";  // Default return 0
+  //   }
+  //   std::cout << "}\n";
+  //   return "";
+  // }
 };
 
 class BlockAST : public BaseAST {

@@ -18,6 +18,8 @@ int main(int argc, const char *argv[]) {
   auto input = argv[2];
   auto output = argv[4];
 
+  yydebug = 1;
+
   lexer = new Lexer(input);
   assert(lexer);
 
