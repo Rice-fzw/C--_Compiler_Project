@@ -159,7 +159,7 @@ int Mylexer::IsIdentifierOrKeyword(){
         return CONTINUE;
     }
 
-     if (identifier == "void") {
+    if (identifier == "void") {
         return VOID;
     }
     
@@ -169,6 +169,7 @@ int Mylexer::IsIdentifierOrKeyword(){
     return IDENT;
 }
 
+//check whether is a dualsign
 int Mylexer::IsdualSign(){
     for (int j = 0; j < 6; j++){
         if (current_char == DualTable[j]){
@@ -178,11 +179,29 @@ int Mylexer::IsdualSign(){
     return -1;
 }
 
+//check whether is valid dual
 int Mylexer::IsDual(){
+    int DUAL[5][2]={{0,EQ},{1,SAR},{2,SHL},{3,LAND},{4,LOR}};
+    int LEGENE[3][2]={{5,NE},{1,LE},{2,GE}};
 
-    int LEGENE[3][2]={{1,GE},{2,LE},{5,NE}};
-
-    for (int i = 0; i < 3; i++){
+    for (int i = 0; i < 5; i++){
+        if(IsdualSign()==DualTable[DUAL[i][0]]){
+            nextcharacter();
+            if (IsdualSign()==DualTable[DUAL[i][0]]){
+                nextcharacter();
+                return DUAL[i][1];
+            }else{
+                if(current_char=='='){
+                    nextcharacter();
+                    return LEGENE[i][1];
+                }else{
+                    return DualTable[DUAL[i][0]];
+                } 
+            } 
+        }    
+    }
+ 
+    for (int i = 0; i < 1; i++){
         if(IsdualSign()==DualTable[LEGENE[i][0]]){
             nextcharacter();
             if (IsdualSign()=='='){
@@ -190,20 +209,6 @@ int Mylexer::IsDual(){
                 return LEGENE[i][1];
             }else{
                 return DualTable[LEGENE[i][0]];
-                } 
-        }    
-    }
-
-    int EqualAndOr[3][2]={{0,EQ},{3,LAND},{4,LOR}};
-
-    for (int i = 0; i < 3; i++){
-        if(IsdualSign()==DualTable[EqualAndOr[i][0]]){
-            nextcharacter();
-            if (IsdualSign()==DualTable[EqualAndOr[i][0]]){
-                nextcharacter();
-                return EqualAndOr[i][1];
-            }else{
-                return '=';
                 } 
         }    
     }
@@ -281,6 +286,8 @@ int Mylexer::yylex() {
         case '}': return '}';
         case ';': return ';';
         case ',': return ',';
+
+        case '^': return '^';        
         // default:
         //     return 0;
     }

@@ -43,8 +43,14 @@ using namespace std;
 %token LE GE EQ NE
 //逻辑运算符Token
 %token LAND LOR
+//位运算符Token
+%token SHL SAR
 //优先级
-%left LOR           // 最低优先级
+%left '|'          // 最低优先级
+%left '^'
+%left '&'
+%left SHL SAR 
+%left LOR
 %left LAND
 %left EQ NE
 %left '<' '>' LE GE
@@ -376,6 +382,12 @@ MulExp
 | MulExp Mulop UnaryExp {
   $$ = new MulExpAST(*$2, unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
 }
+| MulExp SHL UnaryExp {
+  $$ = new MulExpAST("<<", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+}
+| MulExp SAR UnaryExp {
+  $$ = new MulExpAST(">>", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+}
 ;
 
 Mulop
@@ -387,6 +399,15 @@ Mulop
   }
   | '%' {
     $$ = new string("%");
+  }
+  | '&' {
+    $$ = new string("&");
+  }
+  | '|' {
+    $$ = new string("|");
+  }
+  | '^' {
+    $$ = new string("^");
   }
   ;
 

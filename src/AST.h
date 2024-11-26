@@ -1099,6 +1099,22 @@ class MulExpAST : public BaseAST {
       else if(op=="%"){
         IR += "  " + tempVar + " = mod " + left_ir + ", " + right_ir + "\n";
       }
+      // 新加
+      else if(op == "&"){
+          IR += "  " + tempVar + " = and " + left_ir + ", " + right_ir + "\n";
+      }
+      else if(op == "|"){
+          IR += "  " + tempVar + " = or " + left_ir + ", " + right_ir + "\n";
+      }
+      else if(op == "^"){
+          IR += "  " + tempVar + " = xor " + left_ir + ", " + right_ir + "\n";
+      }
+      else if(op == "<<"){
+          IR += "  " + tempVar + " = shl " + left_ir + ", " + right_ir + "\n";
+      }
+      else if(op == ">>"){
+          IR += "  " + tempVar + " = sar " + left_ir + ", " + right_ir + "\n";
+      }
       else assert(false);
       return tempVar;
     }
