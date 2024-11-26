@@ -7,10 +7,10 @@
 
 extern YYSTYPE yylval;  // 声明yylval
 
-class Lexer{
+class Mylexer{
     public:
         //constructor
-        Lexer(std::string s);
+        Mylexer(std::string s);
         int yylex();
        
 
@@ -26,19 +26,22 @@ class Lexer{
         
         int IsIdentifierOrKeyword();
         void nextcharacter();
-        void blankSpace();
         void skipcomment();
+        void blankSpace();
 
         int IsdualSign();
 
         char current_char = ' '; 
         std::ifstream infile;
+      
         const char DualTable[6] = { '=','>','<','&','|','!' };  
 
 };
 
-extern Lexer* lexer;
+// 声明全局lexer对象
+extern Mylexer* lexer;
 
+// 声明包装函数
 extern "C" {
     int yylex();
 }

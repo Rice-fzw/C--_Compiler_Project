@@ -14,6 +14,7 @@ static int if_num = 0;
 static int while_num = 0;
 static std::map<std::string, std::string> chk;
 static std::map<std::string, int> var_num;
+static std::map<std::string, std::string> fun_type;
 static Scope scopeManager;
 static std::vector<int> while_stack;
 
@@ -79,32 +80,81 @@ public:
 
 class CompUnitAST : public BaseAST {
 public:
-    std::vector<std::unique_ptr<BaseAST>> items;  // Decl or Func_def
+    std::vector<std::unique_ptr<BaseAST>> decls;    // 存储所有的声明
+    std::vector<std::unique_ptr<BaseAST>> funcdefs; // 存储所有的函数定义
 
-    CompUnitAST(std::vector<std::unique_ptr<BaseAST>> items) 
-        : items(std::move(items)) {}
+    CompUnitAST() = default;
     
-    // 添加一个函数用于安全地添加新的函数定义
-    void addItem(BaseAST* item) {
-        items.push_back(std::unique_ptr<BaseAST>(item));
+    void addDecl(BaseAST* decl) {
+        decls.push_back(std::unique_ptr<BaseAST>(decl));
+    }
+    
+    void addFuncDef(BaseAST* funcdef) {
+        funcdefs.push_back(std::unique_ptr<BaseAST>(funcdef));
     }
 
     void Dump(int level = 0) const override {
         indent(level);
         std::cout << "CompUnit {\n";
-        for (const auto& item : items) {
-            item->Dump(level + 1);
+        
+        // 只在有声明时才打印声明部分
+        if (!decls.empty()) {
+            indent(level + 1);
+            std::cout << "Declarations:\n";
+            for (const auto& decl : decls) {
+                decl->Dump(level + 2);
+            }
         }
+        
+        // 只在有函数定义时才打印函数部分
+        if (!funcdefs.empty()) {
+            indent(level + 1);
+            std::cout << "Functions:\n";
+            for (const auto& func : funcdefs) {
+                func->Dump(level + 2);
+            }
+        }
+        
         indent(level);
         std::cout << "}\n";
     }
 
     std::string dumpIR(int& tempVarCounter) const override {
-        for (const auto& item : items) {
-            item->dumpIR(tempVarCounter);
+        // 先处理所有声明
+        for (const auto& decl : decls) {
+            decl->dumpIR(tempVarCounter);
+        }
+        // 再处理所有函数定义
+        for (const auto& func : funcdefs) {
+            func->dumpIR(tempVarCounter);
         }
         return "";
     }
+
+//     std::string dumpIR(int& tempVarCounter) const override {
+//         std::cout << "decl @getint(): i32" << std::endl;
+//         std::cout << "decl @getch(): i32" << std::endl;
+//         std::cout << "decl @getarray(*i32): i32" << std::endl;
+//         std::cout << "decl @putint(i32)" << std::endl;
+//         std::cout << "decl @putch(i32)" << std::endl;
+//         std::cout << "decl @putarray(i32, *i32)" << std::endl;
+//         std::cout << "decl @starttime()" << std::endl;
+//         std::cout << "decl @stoptime()" << std::endl << std::endl;
+//         fun_type["getint"] = "int";
+//         fun_type["getch"] = "int";
+//         fun_type["getarray"] = "int";
+//         fun_type["putint"] = "void";
+//         fun_type["putch"] = "void";
+//         fun_type["putarray"] = "void";
+//         fun_type["starttime"] = "void";
+//         fun_type["stoptime"] = "void";
+// //        for (auto&& decl : decl_list)decl->dumpExp();
+
+//         for (const auto& item : items) {
+//             item->dumpIR(tempVarCounter);
+//         }
+//         return "";
+//     }
 };
 
 // 函数参数列表AST节点
@@ -132,8 +182,8 @@ public:
         std::string param_ptr = "@" + ident;
         std::string param_name = param_ptr + "_param";
         mySymboltable* topscope = scopeManager.top();
-        topscope->insertSymbol(ident, btype, "1", param_name);
-        return param_name;
+        topscope->insertSymbol(ident, btype, "2", param_ptr);
+        return param_ptr;
     }
 };
 
@@ -161,7 +211,7 @@ public:
     }
 
     std::string dumpIR(int& tempVarCounter) const override {
-        std::string result;
+        std::string result = "";
         for (size_t i = 0; i < params.size(); ++i) {
             if (i > 0) result += ", ";
             result += params[i]->dumpIR(tempVarCounter) + ": i32";
@@ -194,7 +244,7 @@ public:
     }
 
     std::string dumpIR(int& tempVarCounter) const override {
-        std::string result;
+        std::string result= "";
         for (size_t i = 0; i < params.size(); ++i) {
             if (i > 0) result += ", ";
             result += params[i]->dumpIR(tempVarCounter);
@@ -266,58 +316,30 @@ public:
   }
 
   std::string dumpIR(int& tempVarCounter) const override {
-  // Output function declaration
-  std::cout << "fun @" << ident << "(";
-  
-  // Output parameters if they exist
-  if (params.hasValue()) {
-      std::cout << params.getValue()->dumpIR(tempVarCounter);
+    mySymboltable newtbl;
+    scopeManager.insertScope(newtbl);
+    std::cout << "fun @" << ident << "(";
+    if (params.hasValue()) {
+        std::cout << params.getValue()->dumpIR(tempVarCounter);
+    }
+    std::cout << ")";
+    std::string return_type = func_type->dumpIR(tempVarCounter);
+    fun_type[ident] = return_type;
+    if (return_type == "int") {
+      std::cout << ": i32";
+    }
+    std::cout << " {\n%entry:\n";
+    std::string block_ir = block->dumpIR(tempVarCounter);
+    if (block_ir != "ret" && return_type != "void") {
+      std::cout << "  ret 0\n";
+    }
+    else if(return_type == "void"){
+      std::cout << "  ret\n";
+    }
+    std::cout << "}\n";std::cout << std::endl;
+    scopeManager.exitScope();
+    return "";
   }
-  
-  // Output return type
-  std::cout << ")";
-  std::string return_type = func_type->dumpIR(tempVarCounter);
-  if (return_type == "int") {
-    std::cout << ": i32";
-  }
-  
-  // Function body
-  std::cout << " {\n%entry:\n";
-  
-  // Create new scope for the function
-  mySymboltable newtbl;
-  scopeManager.insertScope(newtbl);
-  
-  // Generate the IR for the function body
-  std::string block_ir = block->dumpIR(tempVarCounter);
-  
-  // Add default return if needed
-  if (block_ir != "ret") {
-    std::cout << "  ret 0\n";
-  }
-  
-  // Exit function scope
-  scopeManager.exitScope();
-  
-  std::cout << "}\n";
-  return "";
-}
-  // std::string dumpIR(int& tempVarCounter) const override {
-  //   // Output the IR code defined by the function
-  //   std::cout << "fun @" << ident << "()";
-  //   if (func_type->dumpIR(tempVarCounter) == "int") {
-  //     std::cout << ": i32 ";
-  //   }
-  //   std::cout << "{\n";
-  //   std::cout << "%entry:\n";
-  //   // Obtain the IR expression of the block
-  //   std::string block_ir = block->dumpIR(tempVarCounter); 
-  //   if (block_ir != "ret") {
-  //     std::cout << "  ret 0\n";  // Default return 0
-  //   }
-  //   std::cout << "}\n";
-  //   return "";
-  // }
 };
 
 class BlockAST : public BaseAST {
@@ -369,9 +391,20 @@ public:
     std::string dumpIR(int& tempVarCounter) const override {
         // obatain the value of variable
         auto varpit = scopeManager.lookupSymbol(ident);
-        std::string var_type= varpit.value() -> type;
-        std::string var_nam= varpit.value() -> KoopalR;
+        std::string var_type = varpit.value() -> type;
+        std::string var_val = varpit.value() -> value;
+        std::string var_nam = varpit.value() -> KoopalR;
         if (var_type == "int"){
+          std::cout<< (var_val);
+          if(var_val == "2"){
+            std::string name = "%" + ident;
+            std::string temp_var = "%" + std::to_string(tempVarCounter++);
+            std::cout << "  " << name << " = alloc i32\n";
+//            std::cout << types[i] << std::endl;
+            std::cout << "  store @" << var_nam << ", " << name << std::endl;
+            std::cout << "  " <<  temp_var << " = load " << name << std::endl;
+            return temp_var;
+          }
         //  std::cout<< chk[ident] << " " << ident << std::endl;
           std::string var_ptr = "@" + ident;  // address of variable
 //          std::string var_nam=var_ptr + "_" + std::to_string(var_num[var_ptr]++);
@@ -640,7 +673,7 @@ public:
             not_else = else_stmt.getValue()->dumpIR(tempVarCounter);
             if (not_else != "ret" && not_else != "break" &&
                 not_else != "cont")
-                std::cout << "\tjump " << end_label << std::endl;
+                std::cout << "  jump " << end_label << std::endl;
             if((not_if == "ret" || not_if == "break" || not_if == "cont" ) && 
               (not_else == "ret" || not_else == "break" || not_else == "cont")) return "ret";
         }
@@ -778,8 +811,18 @@ class PrimaryExpAST : public BaseAST {
     } else if (type == PrimaryExpType::LVal) {
       auto varpit = scopeManager.lookupSymbol(LVal);
       std::string var_type= varpit.value() -> type;
+      std::string var_val = varpit.value() -> value;
       std::string var_nam= varpit.value() -> KoopalR;
       if (var_type == "int"){
+        if(var_val == "2"){
+            std::string name = "%" + LVal;
+            std::string temp_var = "%" + std::to_string(tempVarCounter++);
+            std::cout << "  " << name << " = alloc i32\n";
+//            std::cout << types[i] << std::endl;
+            std::cout << "  store " << var_nam << ", " << name << std::endl;
+            std::cout << "  " << temp_var << " = load " << name << std::endl;
+            return temp_var;
+        }
         //    std::cout<< chk[LVal] << " " << LVal << std::endl;
             std::string var_ptr = "@" + LVal;  // variable's address
   //          std::string var_nam=var_ptr + "_" + std::to_string(var_num[var_ptr]++);
@@ -860,83 +903,66 @@ class UnaryExpAST : public BaseAST {
   }
 
   std::string dumpIR(int& tempVarCounter) const override {
-    std::string ir_exp = exp->dumpIR(tempVarCounter);
-    std::string tempVar = "%" + std::to_string(tempVarCounter++);
-//    std::cout<<"here";
-    if (op == "+") return ir_exp;
-    else if (op == "-") {
-      std::cout << "  " << tempVar << " = sub 0, " << ir_exp << "\n";
-    }
-    else if (op == "!") std::cout << "  " << tempVar << " = eq " << ir_exp << ", 0\n";
-    else assert(false);
-    return tempVar;
+      switch (type) {
+          case UnaryExpType::Unary_op: {
+              std::string expr_ir = exp->dumpIR(tempVarCounter);
+              if (op == "+") return expr_ir;
+                  
+              std::string temp_var = "%" + std::to_string(tempVarCounter++);
+              if (op == "-") {
+                  std::cout << "  " << temp_var << " = sub 0, " << expr_ir << "\n";
+              } else if (op == "!") {
+                  std::cout << "  " << temp_var << " = eq " << expr_ir << ", 0\n";
+              }
+              return temp_var;
+          }
+
+          case UnaryExpType::Function: {
+              std::string mid_var = "";
+              std::string temp_var = "%" + std::to_string(tempVarCounter++);
+              if (rparams.hasValue())
+                mid_var = rparams.getValue()->dumpIR(tempVarCounter);
+              if(fun_type[ident] == "int" )
+                std::cout << "  " << temp_var << " = call @" << ident << "(";
+              else std::cout << "  call @" << ident << "(";
+              if (rparams.hasValue()) {
+                  std::cout << mid_var;
+              }
+                  
+              std::cout << ")\n";
+              return temp_var;
+          }
+
+          case UnaryExpType::Primary:
+              return exp->dumpIR(tempVarCounter);
+      }
+          
+      assert(false);
+      return "";
   }
 
-  virtual int Calc() const override{
-    int result = exp->Calc();
-    if (op == "-") result = -result;
-    if (op == "+") result = result;
-    if (op == "!") result = !result;
-    return result;
+  virtual int Calc() const override {
+      switch (type) {
+          case UnaryExpType::Unary_op: {
+              int result = exp->Calc();
+              if (op == "-") result = -result;
+              if (op == "+") result = result;
+              if (op == "!") result = !result;
+              return result;
+          }
+
+          case UnaryExpType::Function:
+              // 编译时不能计算函数调用
+              assert(false);
+              return 0;
+
+          case UnaryExpType::Primary:
+              return exp->Calc();
+      }
+
+      assert(false);
+      return 0;
   }
-    // 新：
-    //   std::string dumpIR(int& tempVarCounter) const override {
-    //     switch (type) {
-    //         case UNARY_OP: {
-    //             std::string expr_ir = exp->dumpIR(tempVarCounter);
-    //             if (op == "+") return expr_ir;
-                
-    //             std::string temp_var = "%" + std::to_string(tempVarCounter++);
-    //             if (op == "-") {
-    //                 std::cout << "  " << temp_var << " = sub 0, " << expr_ir << "\n";
-    //             } else if (op == "!") {
-    //                 std::cout << "  " << temp_var << " = eq " << expr_ir << ", 0\n";
-    //             }
-    //             return temp_var;
-    //         }
-
-    //         case FUNC_CALL: {
-    //             std::string temp_var = "%" + std::to_string(tempVarCounter++);
-    //             std::cout << "  " << temp_var << " = call @" << ident << "(";
-                
-    //             if (rparams.hasValue()) {
-    //                 std::cout << rparams.getValue()->dumpIR(tempVarCounter);
-    //             }
-                
-    //             std::cout << ")\n";
-    //             return temp_var;
-    //         }
-
-    //         case PRIMARY:
-    //             return exp->dumpIR(tempVarCounter);
-    //     }
-        
-    //     assert(false);
-    //     return "";
-    // }
-
-    // virtual int Calc() const override {
-    //     switch (type) {
-    //         case UNARY_OP: {
-    //             int result = exp->Calc();
-    //             if (op == "-") result = -result;
-    //             if (op == "+") result = result;
-    //             if (op == "!") result = !result;
-    //             return result;
-    //         }
-
-    //         case FUNC_CALL:
-    //             // 编译时不能计算函数调用
-    //             assert(false);
-    //             return 0;
-
-    //         case PRIMARY:
-    //             return exp->Calc();
-    //     }
-
-    //     assert(false);
-    //     return 0;
-    // }
 };
 
 // AddExp handel +, -
@@ -1113,6 +1139,7 @@ class RelExpAST : public BaseAST {
     indent(level);
     std::cout << "}\n";
   }
+
   std::string dumpIR(int& tempVarCounter) const override {
     std::string left_result = left_AST->dumpIR(tempVarCounter);
     if (right_AST) {
@@ -1390,7 +1417,7 @@ class LOrExpAST : public BaseAST {
     if (!right_AST) result = left_AST->Calc();
     else{
       int left_result = left_AST->Calc();
-      if (left_result)return 1;
+      if (left_result) return 1;
       result = right_AST->Calc() != 0;
     }
     return result;

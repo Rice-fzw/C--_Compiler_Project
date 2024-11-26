@@ -74,13 +74,27 @@ using namespace std;
 
 CompUnit
   : CompUnitItem {
-      auto comp_unit = new CompUnitAST(std::vector<std::unique_ptr<BaseAST>>());
-      comp_unit->addItem($1);
+      auto comp_unit = new CompUnitAST();
+      // 根据类型添加到对应vector中
+      if (auto* decl = dynamic_cast<ConstDeclAST*>($1)) {
+          comp_unit->addDecl($1);
+      } else if (auto* decl = dynamic_cast<VarDeclAST*>($1)) {
+          comp_unit->addDecl($1);
+      } else {
+          comp_unit->addFuncDef($1);
+      }
       ast = std::unique_ptr<BaseAST>(comp_unit);
   }
   | CompUnit CompUnitItem {
       auto comp_unit = static_cast<CompUnitAST*>(ast.get());
-      comp_unit->addItem($2);
+      // 根据类型添加到对应vector中
+      if (auto* decl = dynamic_cast<ConstDeclAST*>($2)) {
+          comp_unit->addDecl($2);
+      } else if (auto* decl = dynamic_cast<VarDeclAST*>($2)) {
+          comp_unit->addDecl($2);
+      } else {
+          comp_unit->addFuncDef($2);
+      }
   }
   ;
 
