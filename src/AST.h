@@ -1641,4 +1641,135 @@ public:
         return 0;
     }
 };
+// ShiftExpAST handle <<, >>
+class ShiftExpAST : public BaseAST {
+ public:
+  std::string op;
+  std::unique_ptr<BaseAST> left_AST;
+  std::unique_ptr<BaseAST> right_AST;
+
+  ShiftExpAST(std::unique_ptr<BaseAST> left)
+    : op(""), left_AST(std::move(left)), right_AST(nullptr) {}
+
+  ShiftExpAST(std::string op, std::unique_ptr<BaseAST> left, std::unique_ptr<BaseAST> right)
+    : op(op), left_AST(std::move(left)), right_AST(std::move(right)) {}
+
+  void Dump(int level = 0) const override {
+      indent(level);
+      std::cout << "ShiftExp {\n";
+      if (right_AST) {
+          indent(level + 1);
+          std::cout << "op: " << op << "\n";
+          indent(level + 1);
+          std::cout << "left_AST: {\n";
+          left_AST->Dump(level + 2);
+          indent(level + 1);
+          std::cout << "}\n";
+          indent(level + 1);
+          std::cout << "right_AST: {\n";
+          right_AST->Dump(level + 2);
+          indent(level + 1);
+          std::cout << "}\n";
+      } else {
+          left_AST->Dump(level + 1);
+      }
+      indent(level);
+      std::cout << "}\n";
+  }
+
+  std::string dumpIR(int& tempVarCounter) const override {
+    std::string left_ir = left_AST->dumpIR(tempVarCounter);
+    if (right_AST) {
+      std::string right_ir = right_AST->dumpIR(tempVarCounter);
+      std::string tempVar = "%" + std::to_string(tempVarCounter++);
+      
+      if(op == "<<"){
+        IR += "  " + tempVar + " = shl " + left_ir + ", " + right_ir + "\n";
+      }
+      else if(op == ">>"){
+        IR += "  " + tempVar + " = sar " + left_ir + ", " + right_ir + "\n";
+      }
+      return tempVar;
+    }
+    return left_ir;
+  }
+
+  virtual int Calc() const override {
+    if (!right_AST) return left_AST->Calc();
+    int left_val = left_AST->Calc();
+    int right_val = right_AST->Calc();
+    if (op == "<<") return left_val << right_val;
+    if (op == ">>") return left_val >> right_val;
+    assert(false);
+    return 0;
+  }
+};
+
+// BitExpAST handle &, |, ^
+class BitExpAST : public BaseAST {
+ public:
+  std::string op;
+  std::unique_ptr<BaseAST> left_AST;
+  std::unique_ptr<BaseAST> right_AST;
+
+  BitExpAST(std::unique_ptr<BaseAST> left)
+    : op(""), left_AST(std::move(left)), right_AST(nullptr) {}
+
+  BitExpAST(std::string op, std::unique_ptr<BaseAST> left, std::unique_ptr<BaseAST> right)
+    : op(op), left_AST(std::move(left)), right_AST(std::move(right)) {}
+
+  void Dump(int level = 0) const override {
+      indent(level);
+      std::cout << "BitExp {\n";
+      if (right_AST) {
+          indent(level + 1);
+          std::cout << "op: " << op << "\n";
+          indent(level + 1);
+          std::cout << "left_AST: {\n";
+          left_AST->Dump(level + 2);
+          indent(level + 1);
+          std::cout << "}\n";
+          indent(level + 1);
+          std::cout << "right_AST: {\n";
+          right_AST->Dump(level + 2);
+          indent(level + 1);
+          std::cout << "}\n";
+      } else {
+          left_AST->Dump(level + 1);
+      }
+      indent(level);
+      std::cout << "}\n";
+  }
+  
+  std::string dumpIR(int& tempVarCounter) const override {
+    std::string left_ir = left_AST->dumpIR(tempVarCounter);
+    if (right_AST) {
+      std::string right_ir = right_AST->dumpIR(tempVarCounter);
+      std::string tempVar = "%" + std::to_string(tempVarCounter++);
+      
+      if(op == "&"){
+        IR += "  " + tempVar + " = and " + left_ir + ", " + right_ir + "\n";
+      }
+      else if(op == "|"){
+        IR += "  " + tempVar + " = or " + left_ir + ", " + right_ir + "\n";
+      }
+      else if(op == "^"){
+        IR += "  " + tempVar + " = xor " + left_ir + ", " + right_ir + "\n";
+      }
+      return tempVar;
+    }
+    return left_ir;
+  }
+
+  virtual int Calc() const override {
+    if (!right_AST) return left_AST->Calc();
+    int left_val = left_AST->Calc();
+    int right_val = right_AST->Calc();
+    if (op == "&") return left_val & right_val;
+    if (op == "|") return left_val | right_val;
+    if (op == "^") return left_val ^ right_val;
+    assert(false);
+    return 0;
+  }
+};
 #endif

@@ -46,17 +46,17 @@ using namespace std;
 //位运算符Token
 %token SHL SAR
 //优先级
-%left '|'          // 最低优先级
+%left LOR           // ||
+%left LAND          // &&
+%left '|'
 %left '^'
 %left '&'
-%left SHL SAR 
-%left LOR
-%left LAND
-%left EQ NE
-%left '<' '>' LE GE
-%left '+' '-'
+%left EQ NE         // == !=
+%left '<' '>' LE GE // <= >=
+%left SHL SAR       // << >>
+%left '+' '-'       // plus minus 
 %left '*' '/' '%'
-%right '!'          // 最高优先级
+%right '!'
 
 %start CompUnit  // 明确指定起始规则
 
@@ -66,9 +66,10 @@ using namespace std;
 %type <ast_val> FuncDef FuncType CompUnitItem Block Stmt BlockItem BlockItems
 %type <ast_val> Exp UnaryExp PrimaryExp MulExp AddExp
 %type <ast_val> RelExp EqExp LAndExp LOrExp
+%type <ast_val> BitOrExp BitXorExp BitAndExp ShiftExp
 %type <ast_val> OptionalExp
 
-%type <str_val> UnaryOp Mulop Addop
+%type <str_val> Mulop Addop
 %type <int_val> Number
 %type <ast_val> ConstDecl ConstDef ConstDefList ConstInitVal Decl ConstExp
 %type <ast_val> VarDecl VarDefList VarDef InitVal
@@ -339,8 +340,14 @@ UnaryExp
   : PrimaryExp {
     $$ = $1;
   }
-  | UnaryOp UnaryExp {
-    $$ = new UnaryExpAST(*$1, std::unique_ptr<BaseAST>($2));
+  | '+' UnaryExp %prec '!' {  // 使用 ! 的优先级
+    $$ = new UnaryExpAST("+", std::unique_ptr<BaseAST>($2));
+  }
+  | '-' UnaryExp %prec '!' {  // 使用 ! 的优先级
+    $$ = new UnaryExpAST("-", std::unique_ptr<BaseAST>($2));
+  }
+  | '!' UnaryExp {
+    $$ = new UnaryExpAST("!", std::unique_ptr<BaseAST>($2));
   }
   | IDENT '(' FuncRParams ')' {
       $$ = new UnaryExpAST(*$1, std::unique_ptr<FuncRParamsAST>(static_cast<FuncRParamsAST*>($3)));
@@ -349,17 +356,6 @@ UnaryExp
       $$ = new UnaryExpAST(*$1); 
   }
   ;
-
-UnaryOp
-  : '+' {
-    $$ = new string("+");
-  }
-  | '-' {
-    $$ = new string("-");
-  }
-  | '!' {
-    $$ = new string("!");
-  }
 
 FuncRParams
   : Exp {
@@ -382,12 +378,6 @@ MulExp
 | MulExp Mulop UnaryExp {
   $$ = new MulExpAST(*$2, unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
 }
-| MulExp SHL UnaryExp {
-  $$ = new MulExpAST("<<", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
-}
-| MulExp SAR UnaryExp {
-  $$ = new MulExpAST(">>", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
-}
 ;
 
 Mulop
@@ -399,15 +389,6 @@ Mulop
   }
   | '%' {
     $$ = new string("%");
-  }
-  | '&' {
-    $$ = new string("&");
-  }
-  | '|' {
-    $$ = new string("|");
-  }
-  | '^' {
-    $$ = new string("^");
   }
   ;
 
@@ -429,20 +410,32 @@ Addop
   }
   ;
 
-RelExp
+ShiftExp
   : AddExp {
+    $$ = new ShiftExpAST(unique_ptr<BaseAST>($1));
+  }
+  | ShiftExp SHL AddExp {
+    $$ = new ShiftExpAST("<<", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+  }
+  | ShiftExp SAR AddExp {
+    $$ = new ShiftExpAST(">>", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+  }
+  ;
+
+RelExp
+  : ShiftExp {
     $$ = new RelExpAST(unique_ptr<BaseAST>($1));
   }
-  | RelExp '<' AddExp {
+  | RelExp '<' ShiftExp {
     $$ = new RelExpAST("<", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
   }
-  | RelExp '>' AddExp {
+  | RelExp '>' ShiftExp {
     $$ = new RelExpAST(">", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
   }
-  | RelExp LE AddExp {
+  | RelExp LE ShiftExp {
     $$ = new RelExpAST("<=", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
   }
-  | RelExp GE AddExp {
+  | RelExp GE ShiftExp {
     $$ = new RelExpAST(">=", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
   }
   ;
@@ -459,11 +452,38 @@ EqExp
   }
   ;
 
-LAndExp
+BitAndExp
   : EqExp {
+    $$ = new BitExpAST(unique_ptr<BaseAST>($1));
+  }
+  | BitAndExp '&' EqExp {
+    $$ = new BitExpAST("&", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+  }
+  ;
+
+BitXorExp
+  : BitAndExp {
+    $$ = new BitExpAST(unique_ptr<BaseAST>($1));
+  }
+  | BitXorExp '^' BitAndExp {
+    $$ = new BitExpAST("^", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+  }
+  ;
+
+BitOrExp
+  : BitXorExp {
+    $$ = new BitExpAST(unique_ptr<BaseAST>($1));
+  }
+  | BitOrExp '|' BitXorExp {
+    $$ = new BitExpAST("|", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+  }
+  ;
+
+LAndExp
+  : BitOrExp {
     $$ = new LAndExpAST(unique_ptr<BaseAST>($1));
   }
-  | LAndExp LAND EqExp {
+  | LAndExp LAND BitOrExp {
     $$ = new LAndExpAST("&&", unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
   }
   ;
