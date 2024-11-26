@@ -36,7 +36,7 @@ int main(int argc, const char *argv[]) {
     string ir_str = ss.str();
     const char *ir = ir_str.data();
     cout.rdbuf(cout_buf);
-  //  std :: cout << ir ;
+    //std :: cout << ir ;
     ofstream out_file(output);  // open the output file
     out_file << ir_str;         // write the IR string to the file
     out_file.close();
@@ -49,6 +49,13 @@ int main(int argc, const char *argv[]) {
     string ir_str = ss.str();
     const char *ir = ir_str.data();
     cout.rdbuf(cout_buf);
+    if (fl == 1){
+      ofstream out_file(output);  // open the output file
+      out_file << ir_str;         // write the error message to the file
+      out_file.close();
+      delete lexer;
+      return 0;
+    }
     std :: cout << "IR is:"<<ir<<endl ;
 
     koopa_program_t program;

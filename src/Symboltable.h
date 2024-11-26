@@ -1,5 +1,5 @@
-#ifndef mySymboltable_h
-#define mySymboltable_h
+#ifndef Symboltable_h
+#define Symboltable_h
 
 //this header file include three type: symbol, mySymboltable, Scope 
 

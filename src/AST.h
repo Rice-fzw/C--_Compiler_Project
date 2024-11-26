@@ -8,15 +8,20 @@
 #include <cassert>
 #include <vector>
 #include <map>
-#include "mySymboltable.h"
+#include "Symboltable.h"
 
+extern int fl;
 static int if_num = 0;
 static int while_num = 0;
+static std::string IR = "";
+static std::string glb_IR = "";
 static std::map<std::string, std::string> chk;
-static std::map<std::string, int> var_num;
 static std::map<std::string, std::string> fun_type;
-static Scope scopeManager;
+static std::map<std::string, int> var_num;
+static std::vector<std::string> fun_var;
 static std::vector<int> while_stack;
+static Scope scopeManager;
+
 
 // Auxiliary function: Print indentation
 inline void indent(int level) {
@@ -80,35 +85,54 @@ public:
 
 class CompUnitAST : public BaseAST {
 public:
-    std::vector<std::unique_ptr<BaseAST>> items;  // Decl or Func_def
+    std::vector<std::unique_ptr<BaseAST>> decls;    // 存储所有的声明
+    std::vector<std::unique_ptr<BaseAST>> funcdefs; // 存储所有的函数定义
 
-    CompUnitAST(std::vector<std::unique_ptr<BaseAST>> items) 
-        : items(std::move(items)) {}
+    CompUnitAST() = default;
     
-    // 添加一个函数用于安全地添加新的函数定义
-    void addItem(BaseAST* item) {
-        items.push_back(std::unique_ptr<BaseAST>(item));
+    void addDecl(BaseAST* decl) {
+        decls.push_back(std::unique_ptr<BaseAST>(decl));
+    }
+    
+    void addFuncDef(BaseAST* funcdef) {
+        funcdefs.push_back(std::unique_ptr<BaseAST>(funcdef));
     }
 
     void Dump(int level = 0) const override {
         indent(level);
         std::cout << "CompUnit {\n";
-        for (const auto& item : items) {
-            item->Dump(level + 1);
+        
+        // 只在有声明时才打印声明部分
+        if (!decls.empty()) {
+            indent(level + 1);
+            std::cout << "Declarations:\n";
+            for (const auto& decl : decls) {
+                decl->Dump(level + 2);
+            }
         }
+        
+        // 只在有函数定义时才打印函数部分
+        if (!funcdefs.empty()) {
+            indent(level + 1);
+            std::cout << "Functions:\n";
+            for (const auto& func : funcdefs) {
+                func->Dump(level + 2);
+            }
+        }
+        
         indent(level);
         std::cout << "}\n";
     }
 
     std::string dumpIR(int& tempVarCounter) const override {
-        std::cout << "decl @getint(): i32" << std::endl;
-        std::cout << "decl @getch(): i32" << std::endl;
-        std::cout << "decl @getarray(*i32): i32" << std::endl;
-        std::cout << "decl @putint(i32)" << std::endl;
-        std::cout << "decl @putch(i32)" << std::endl;
-        std::cout << "decl @putarray(i32, *i32)" << std::endl;
-        std::cout << "decl @starttime()" << std::endl;
-        std::cout << "decl @stoptime()" << std::endl << std::endl;
+        glb_IR += "decl @getint(): i32\n";
+        glb_IR += "decl @getch(): i32\n";
+        glb_IR += "decl @getarray(*i32): i32\n";
+        glb_IR += "decl @putint(i32)\n";
+        glb_IR += "decl @putch(i32)\n";
+        glb_IR += "decl @putarray(i32, *i32)\n";
+        glb_IR += "decl @starttime()\n";
+        glb_IR += "decl @stoptime()\n\n";
         fun_type["getint"] = "int";
         fun_type["getch"] = "int";
         fun_type["getarray"] = "int";
@@ -117,11 +141,20 @@ public:
         fun_type["putarray"] = "void";
         fun_type["starttime"] = "void";
         fun_type["stoptime"] = "void";
-//        for (auto&& decl : decl_list)decl->dumpExp();
 
-        for (const auto& item : items) {
-            item->dumpIR(tempVarCounter);
+//        先处理所有声明
+        if(!decls.empty()){
+            mySymboltable newtbl;
+            scopeManager.insertScope(newtbl);
         }
+        for (const auto& decl : decls) {
+            decl->Calc();
+        }
+        // 再处理所有函数定义
+        for (const auto& func : funcdefs) {
+            func->dumpIR(tempVarCounter);
+        }
+        if (!fl) std::cout << glb_IR << IR;
         return "";
     }
 };
@@ -147,11 +180,11 @@ public:
     }
 
     std::string dumpIR(int& tempVarCounter) const override {
-        // 在符号表中注册参数
         std::string param_ptr = "@" + ident;
-        std::string param_name = param_ptr + "_param";
-        mySymboltable* topscope = scopeManager.top();
-        topscope->insertSymbol(ident, btype, "2", param_ptr);
+      //  std::string param_name = param_ptr + "_param";
+      //  mySymboltable* topscope = scopeManager.top();
+      //  topscope->insertSymbol(ident, btype, "2", param_ptr);
+        fun_var.push_back(ident);
         return param_ptr;
     }
 };
@@ -287,25 +320,34 @@ public:
   std::string dumpIR(int& tempVarCounter) const override {
     mySymboltable newtbl;
     scopeManager.insertScope(newtbl);
-    std::cout << "fun @" << ident << "(";
+    IR += "fun @" + ident + "(";
     if (params.hasValue()) {
-        std::cout << params.getValue()->dumpIR(tempVarCounter);
+        IR += params.getValue()->dumpIR(tempVarCounter);
     }
-    std::cout << ")";
+    IR += ")";
     std::string return_type = func_type->dumpIR(tempVarCounter);
     fun_type[ident] = return_type;
     if (return_type == "int") {
-      std::cout << ": i32";
+      IR += ": i32";
     }
-    std::cout << " {\n%entry:\n";
+    IR += " {\n%entry:\n";
+    for(const auto& var : fun_var){
+      std::string name = "%" + var;
+      IR += "  " + name + " = alloc i32\n";
+//            std::cout << types[i] << std::endl;
+      IR += "  store @" + var + ", " + name + "\n";
+      mySymboltable* topscope = scopeManager.top();
+      topscope->insertSymbol(var, "int", "2", name);
+    }
     std::string block_ir = block->dumpIR(tempVarCounter);
     if (block_ir != "ret" && return_type != "void") {
-      std::cout << "  ret 0\n";
+      IR += "  ret 0\n";
     }
     else if(return_type == "void"){
-      std::cout << "  ret\n";
+      IR += "  ret\n";
     }
-    std::cout << "}\n";std::cout << std::endl;
+    IR += "}\n\n";
+    fun_var.clear();
     scopeManager.exitScope();
     return "";
   }
@@ -364,24 +406,27 @@ public:
         std::string var_val = varpit.value() -> value;
         std::string var_nam = varpit.value() -> KoopalR;
         if (var_type == "int"){
-          std::cout<< (var_val);
+          IR += var_val;
           if(var_val == "2"){
-            std::string name = "%" + ident;
             std::string temp_var = "%" + std::to_string(tempVarCounter++);
-            std::cout << "  " << name << " = alloc i32\n";
-//            std::cout << types[i] << std::endl;
-            std::cout << "  store @" << var_nam << ", " << name << std::endl;
-            std::cout << "  " <<  temp_var << " = load " << name << std::endl;
+            IR += "  " +  temp_var + " = load " + var_nam + "\n";
             return temp_var;
           }
         //  std::cout<< chk[ident] << " " << ident << std::endl;
           std::string var_ptr = "@" + ident;  // address of variable
 //          std::string var_nam=var_ptr + "_" + std::to_string(var_num[var_ptr]++);
           std::string temp_var = "%" + std::to_string(tempVarCounter++);
-          std::cout << "  " << temp_var << " = load " << var_nam << "\n";
+          IR += "  " + temp_var + " = load " + var_nam + "\n";
           return temp_var;
         }
         return var_nam;
+    }
+
+    virtual int Calc() const override{
+//        std::cout<<"here";
+      auto varpit = scopeManager.lookupSymbol(ident);
+      std::string var_nam = varpit.value() -> KoopalR;
+      return std::stoi(var_nam);
     }
 };
 
@@ -509,10 +554,10 @@ public:
                 if (exp.hasValue()) {
                     // Generate the IR of the expression and obtain the result
                     std::string exp_result = exp.getValue()->dumpIR(tempVarCounter);
-                    std::cout << "  ret " << exp_result << "\n";
+                    IR += "  ret " + exp_result + "\n";
                 } else {
                     // handle empty return
-                    std::cout << "  ret 0\n";
+                    IR += "  ret 0\n";
                 }
                 return "ret";
             }
@@ -524,7 +569,7 @@ public:
 
                     auto varpit = scopeManager.lookupSymbol(lval.getValue());
                     std::string var_nam= varpit.value() -> KoopalR;
-                    std::cout << "  store " << exp_result << ", " << var_nam << "\n";
+                    IR += "  store " + exp_result + ", " + var_nam + "\n";
                 }
                 return "";
             }
@@ -548,14 +593,14 @@ public:
             case StmtType::Break: {
                 // Jump to the end tag of the current loop
                 int while_nb=while_stack.back();
-                std::cout << "  jump %while_end_" << while_nb - 1 << "\n";
+                IR += "  jump %while_end_" + std::to_string(while_nb - 1) + "\n";
                 return "break";
             }
 
             case StmtType::Continue: {
                 // Jump to the conditional judgment label of the current loop
                 int while_nb=while_stack.back();
-                std::cout << "  jump %while_entry_" << while_nb - 1 << "\n";
+                IR += "  jump %while_entry_" + std::to_string(while_nb - 1) + "\n";
                 return "cont";
             }
             
@@ -563,6 +608,12 @@ public:
                 assert(false && "Unknown statement type");
                 return "";
         }
+    }
+
+    virtual int Calc() const override{
+//        std::cout<<"here";
+        if(exp.hasValue()) return exp.getValue()->Calc();
+        return 0;
     }
 };
 
@@ -622,31 +673,31 @@ public:
         std::string end_label = "%end_" + std::to_string(if_num++);
 
         // check whether having "else"
-        std::cout << "  br " << cond_result << ", " << then_label << ", ";
+        IR += "  br " + cond_result + ", " + then_label + ", ";
         if (else_stmt.hasValue()) {
-            std::cout << else_label << "\n";
+            IR += else_label + "\n";
         } else {
-            std::cout << end_label << "\n";
+            IR += end_label + "\n";
         }
 
         // then branches
-        std::cout << then_label << ":\n";
+        IR += then_label + ":\n";
         std::string not_if = then_stmt->dumpIR(tempVarCounter);
         if (not_if != "ret" && not_if != "break" && not_if != "cont") {
-          std::cout << "  jump " << end_label << "\n";
+          IR += "  jump " + end_label + "\n";
         }
         std::string not_else = "";
         // else branches(if exits)
         if (else_stmt.hasValue()) {
-            std::cout << else_label << ":\n";
+            IR += else_label + ":\n";
             not_else = else_stmt.getValue()->dumpIR(tempVarCounter);
             if (not_else != "ret" && not_else != "break" &&
                 not_else != "cont")
-                std::cout << "  jump " << end_label << std::endl;
+                IR += "  jump " + end_label + "\n";
             if((not_if == "ret" || not_if == "break" || not_if == "cont" ) && 
               (not_else == "ret" || not_else == "break" || not_else == "cont")) return "ret";
         }
-        std::cout << end_label << ":\n";
+        IR += end_label + ":\n";
         return "";
     }
 };
@@ -689,21 +740,21 @@ public:
         std::string end_label = "%while_end_" + std::to_string(while_num++);
         while_stack.push_back(while_num);
         // Jump to entry block
-        std::cout << "  jump " << entry_label << "\n";
+        IR += "  jump " + entry_label + "\n";
         
         // Entry block: evaluate condition
-        std::cout << entry_label << ":\n";
+        IR += entry_label + ":\n";
         std::string cond_result = cond->dumpIR(tempVarCounter);
-        std::cout << "  br " << cond_result << ", " << body_label << ", " << end_label << "\n";
+        IR += "  br " + cond_result + ", " + body_label + ", " + end_label + "\n";
         
         // Body block: execute loop body
-        std::cout << body_label << ":\n";
+        IR += body_label + ":\n";
         std::string not_ret = body->dumpIR(tempVarCounter);
         if (not_ret != "ret" && not_ret != "break" && not_ret != "cont")
-            std::cout << "  jump " << entry_label << "\n";
+            IR += "  jump " + entry_label + "\n";
         
         // End block
-        std::cout << end_label << ":\n";
+        IR += end_label + ":\n";
         while_stack.pop_back();
         return "";
     }
@@ -784,20 +835,16 @@ class PrimaryExpAST : public BaseAST {
       std::string var_nam= varpit.value() -> KoopalR;
       if (var_type == "int"){
         if(var_val == "2"){
-            std::string name = "%" + LVal;
             std::string temp_var = "%" + std::to_string(tempVarCounter++);
-            std::cout << "  " << name << " = alloc i32\n";
-//            std::cout << types[i] << std::endl;
-            std::cout << "  store " << var_nam << ", " << name << std::endl;
-            std::cout << "  " << temp_var << " = load " << name << std::endl;
+            IR += "  " +  temp_var + " = load " + var_nam + "\n";
             return temp_var;
         }
-        //    std::cout<< chk[LVal] << " " << LVal << std::endl;
-            std::string var_ptr = "@" + LVal;  // variable's address
-  //          std::string var_nam=var_ptr + "_" + std::to_string(var_num[var_ptr]++);
-            std::string temp_var = "%" + std::to_string(tempVarCounter++);
-            std::cout << "  " << temp_var << " = load " << var_nam << "\n";
-            return temp_var;
+        //  std::cout<< chk[LVal] << " " << LVal << std::endl;
+          std::string var_ptr = "@" + LVal;  // variable's address
+        //  std::string var_nam=var_ptr + "_" + std::to_string(var_num[var_ptr]++);
+          std::string temp_var = "%" + std::to_string(tempVarCounter++);
+          IR += "  " + temp_var + " = load " + var_nam + "\n";
+          return temp_var;
       }
       return var_nam;
     }
@@ -812,10 +859,7 @@ class PrimaryExpAST : public BaseAST {
     } else if (type == PrimaryExpType::LVal) {
       auto varpit = scopeManager.lookupSymbol(LVal);
       std::string var_type= varpit.value() -> type;
-      std::string var_nam= varpit.value() -> value;
-      if (var_type == "int"){
-          return std::stoi(var_nam);
-      }
+      std::string var_nam= varpit.value() -> KoopalR;
       return std::stoi(var_nam);
     }
     assert(false);
@@ -879,24 +923,28 @@ class UnaryExpAST : public BaseAST {
                   
               std::string temp_var = "%" + std::to_string(tempVarCounter++);
               if (op == "-") {
-                  std::cout << "  " << temp_var << " = sub 0, " << expr_ir << "\n";
+                  IR += "  " + temp_var + " = sub 0, " + expr_ir + "\n";
               } else if (op == "!") {
-                  std::cout << "  " << temp_var << " = eq " << expr_ir << ", 0\n";
+                  IR += "  " + temp_var + " = eq " + expr_ir + ", 0\n";
               }
               return temp_var;
           }
 
           case UnaryExpType::Function: {
-
-              std::string temp_var = "%" + std::to_string(tempVarCounter++);
-              if(fun_type[ident] == "int" )
-                std::cout << "  " << temp_var << " = call @" << ident << "(";
-              else std::cout << "  call @" << ident << "(";
+              std::string mid_var = "";
+              std::string temp_var = "%" + std::to_string(tempVarCounter);
+              if (rparams.hasValue())
+                mid_var = rparams.getValue()->dumpIR(tempVarCounter);
+              if(fun_type[ident] == "int" ){
+                temp_var = "%" + std::to_string(tempVarCounter++);
+                IR += "  " + temp_var + " = call @" + ident + "(";
+              }
+              else IR += "  call @" + ident + "(";
               if (rparams.hasValue()) {
-                  std::cout << rparams.getValue()->dumpIR(tempVarCounter);
+                  IR += mid_var;
               }
                   
-              std::cout << ")\n";
+              IR += ")\n";
               return temp_var;
           }
 
@@ -974,10 +1022,10 @@ class AddExpAST : public BaseAST {
       std::string right_ir = right_AST->dumpIR(tempVarCounter);
       std::string tempVar = "%" + std::to_string(tempVarCounter++);
       if(op=="+"){
-        std::cout << "  " << tempVar << " = add " << left_ir << ", " << right_ir << "\n";
+        IR += "  " + tempVar + " = add " + left_ir + ", " + right_ir + "\n";
       }
       else if(op=="-"){
-        std::cout << "  " << tempVar << " = sub " << left_ir << ", " << right_ir << "\n";
+        IR += "  " + tempVar + " = sub " + left_ir + ", " + right_ir + "\n";
       }
       else assert(false);
 //      std::cout << "!!!!\n"<<tempVar<<"\n";
@@ -1043,13 +1091,13 @@ class MulExpAST : public BaseAST {
 //      std::cout<<"here";
       std::string tempVar = "%" + std::to_string(tempVarCounter++);
       if(op=="*"){
-        std::cout << "  " << tempVar << " = mul " << left_ir << ", " << right_ir << "\n";
+        IR += "  " + tempVar + " = mul " + left_ir + ", " + right_ir + "\n";
       }
       else if(op=="/"){
-        std::cout << "  " << tempVar << " = div " << left_ir << ", " << right_ir << "\n";
+        IR += "  " + tempVar + " = div " + left_ir + ", " + right_ir + "\n";
       }
       else if(op=="%"){
-        std::cout << "  " << tempVar << " = mod " << left_ir << ", " << right_ir << "\n";
+        IR += "  " + tempVar + " = mod " + left_ir + ", " + right_ir + "\n";
       }
       else assert(false);
       return tempVar;
@@ -1114,16 +1162,16 @@ class RelExpAST : public BaseAST {
 //      std::string right_result = left_AST->dumpIR(tempVarCounter);
       std::string tempVar="%" + std::to_string(tempVarCounter++);
       if (op == "<"){
-        std::cout << "  " << tempVar << " = lt " << left_result << ", " << right_result << "\n";
+        IR += "  " + tempVar + " = lt " + left_result + ", " + right_result + "\n";
       }
       else if (op == ">"){
-        std::cout << "  " << tempVar << " = gt " << left_result << ", " << right_result << "\n";
+        IR += "  " + tempVar + " = gt " + left_result + ", " + right_result + "\n";
       }
       else if (op=="<="){
-        std::cout << "  " << tempVar << " = le " << left_result << ", " << right_result << "\n";
+        IR += "  " + tempVar + " = le " + left_result + ", " + right_result + "\n";
       }
       else if (op==">="){
-        std::cout << "  " << tempVar << " = ge " << left_result << ", " << right_result << "\n";
+        IR += "  " + tempVar + " = ge " + left_result + ", " + right_result + "\n";
       }
       else assert(false);
       return tempVar;
@@ -1187,10 +1235,10 @@ class EqExpAST : public BaseAST {
       std::string right_result = right_AST->dumpIR(tempVarCounter);
       std::string tempVar= "%" + std::to_string(tempVarCounter++);
       if (op == "=="){
-        std::cout << "  " << tempVar << " = eq " << left_result << " , " << right_result << "\n";
+        IR += "  " + tempVar + " = eq " + left_result + " , " + right_result + "\n";
       }
       else if (op == "!="){
-        std::cout << "  " << tempVar << " = ne " << left_result << " , " << right_result << "\n";
+        IR += "  " + tempVar + " = ne " + left_result + " , " + right_result + "\n";
       }
       else assert(false);
       return tempVar;
@@ -1260,33 +1308,34 @@ class LAndExpAST : public BaseAST {
       std::string end_label = "%end__" + std::to_string(if_num++);
       std::string result_var_ptr = "%" + std::to_string(tempVarCounter++);
       // Allocate memory for the result of the logical AND
-      std::cout << "  " << result_var_ptr << " = alloc i32" << std::endl;
+      IR += "  " + result_var_ptr + " = alloc i32" + "\n";
 
       // Perform branching based on the result of the left operand
-      std::cout << "  br " << left_result << ", " << then_label << ", " << else_label << std::endl;
+      IR += "  br " + left_result + ", " + then_label + ", " + else_label + "\n";
 
       // Then block: evaluate the right operand if left is true
-      std::cout << then_label << ":" << std::endl;
+      IR += then_label + ":" + "\n";
       std::string right_result = right_AST->dumpIR(tempVarCounter);
       std::string tmp_result_var = "%" + std::to_string(tempVarCounter++);
-      std::cout << "  " << tmp_result_var << " = ne " << right_result << ", 0" << std::endl;
+      IR += "  " + tmp_result_var + " = ne " + right_result + ", 0" + "\n";
 
       // Store the result of right operand evaluation
-      std::cout << "  store " << tmp_result_var << ", " << result_var_ptr << std::endl;
-      std::cout << "  jump " << end_label << std::endl;
+      IR += "  store " + tmp_result_var + ", " + result_var_ptr + "\n";
+      IR += "  jump " + end_label + "\n";
 
       // Else block: if left is false, set the result to false (0)
-      std::cout << else_label << ":" << std::endl;
-      std::cout << "  store 0, " << result_var_ptr << std::endl;
-      std::cout << "  jump " << end_label << std::endl;
+      IR += else_label + ":" + "\n";
+      IR += "  store 0, " + result_var_ptr + "\n";
+      IR += "  jump " + end_label + "\n";
 
       // End label: load the final result
-      std::cout << end_label << ":" << std::endl;
+      IR += end_label + ":" + "\n";
       result_var = "%" + std::to_string(tempVarCounter++);
-      std::cout << "  " << result_var << " = load " << result_var_ptr << std::endl;
+      IR += "  " + result_var + " = load " + result_var_ptr + "\n";
     }
     return result_var;
   }
+
   virtual int Calc() const override{
     int result = 1;
     if (!right_AST) result = left_AST->Calc();
@@ -1351,30 +1400,30 @@ class LOrExpAST : public BaseAST {
       std::string result_var_ptr = "%" + std::to_string(tempVarCounter++);
 
       // Allocate memory for storing the result of the logical OR
-      std::cout << "  " << result_var_ptr << " = alloc i32" << std::endl;
+      IR += "  " + result_var_ptr + " = alloc i32" + "\n";
 
       // Conditional branching based on the result of the left operand
-      std::cout << "  br " << left_result << ", " << then_label << ", " << else_label << std::endl;
+      IR += "  br " + left_result + ", " + then_label + ", " + else_label + "\n";
 
       // Then block: if the left operand is non-zero (true), store 1
-      std::cout << then_label << ":" << std::endl;
-      std::cout << "  store 1, " << result_var_ptr << std::endl;
-      std::cout << "  jump " << end_label << std::endl;
+      IR += then_label + ":" + "\n";
+      IR += "  store 1, " + result_var_ptr + "\n";
+      IR += "  jump " + end_label + "\n";
 
       // Else block: if the left operand is zero (false), evaluate the right operand
-      std::cout << else_label << ":" << std::endl;
+      IR += else_label + ":" + "\n";
       std::string tmp_result_var = "%" + std::to_string(tempVarCounter++);
       std::string right_result = right_AST->dumpIR(tempVarCounter);
-      std::cout << "  " << tmp_result_var << " = ne " << right_result << ", 0" << std::endl;
+      IR += "  " + tmp_result_var + " = ne " + right_result + ", 0" + "\n";
 
       // Store the result of the right operand evaluation (1 if true, 0 if false)
-      std::cout << "  store " << tmp_result_var << ", " << result_var_ptr << std::endl;
-      std::cout << "  jump " << end_label << std::endl;
+      IR += "  store " + tmp_result_var + ", " + result_var_ptr + "\n";
+      IR += "  jump " + end_label + "\n";
 
       // End block: load the final result (either 1 or 0) into the result variable
-      std::cout << end_label << ":" << std::endl;
+      IR += end_label + ":" + "\n";
       result_var = "%" + std::to_string(tempVarCounter++);
-      std::cout << "  " << result_var << " = load " << result_var_ptr << std::endl;
+      IR += "  " + result_var + " = load " + result_var_ptr + "\n";
     }
     return result_var;
   }
@@ -1417,16 +1466,18 @@ public:
     }
 
     std::string dumpIR(int& tempVarCounter) const override {
-        std::string init_val_ir = init_val->dumpIR(tempVarCounter);
+        int init_val_ir = init_val->Calc();
         mySymboltable* topscope = scopeManager.top();
-        topscope -> insertSymbol(ident, "const", "1", init_val_ir);
+        topscope -> insertSymbol(ident, "const", "1", std::to_string(init_val_ir));
         //chk[ident] = init_val_ir;
-        return init_val_ir;
+        return std::to_string(init_val_ir);
     }
 
     virtual int Calc() const override{
       int init_val_ir = init_val->Calc();
-      return 0;
+      mySymboltable* topscope = scopeManager.top();
+      topscope -> insertSymbol(ident, "const", "1", std::to_string(init_val_ir));
+      return init_val_ir;
     }
 };
 
@@ -1461,6 +1512,13 @@ public:
             def->dumpIR(tempVarCounter);
         }
         return "";
+    }
+
+    virtual int Calc() const override{
+        for (const auto& def : const_defs) {
+            def->Calc();
+        }
+        return 0;
     }
 };
 
@@ -1499,15 +1557,31 @@ public:
     std::string dumpIR(int& tempVarCounter) const override {
         std::string var_ptr = "@" + ident;
         std::string var_nam = var_ptr + "_" + std::to_string(var_num[var_ptr]++);
-        std::cout << "  " << var_nam << " = alloc i32\n";
+        IR += "  " + var_nam + " = alloc i32\n";
         mySymboltable* topscope = scopeManager.top();
         topscope -> insertSymbol(ident, "int", "1", var_nam);
         if (has_init) {
             std::string init_val_ir = init_val->dumpIR(tempVarCounter);
-            std::cout << "  store " << init_val_ir << ", " << var_nam << "\n";
+            IR += "  store " + init_val_ir + ", " + var_nam + "\n";
         }
         
         return var_ptr;
+    }
+
+    virtual int Calc() const override{
+        std::string var_ptr = "@" + ident;
+        std::string var_nam = var_ptr + "_" + std::to_string(var_num[var_ptr]++);
+        glb_IR += "global  " + var_nam + " = alloc i32, ";
+        mySymboltable* topscope = scopeManager.top();
+        topscope -> insertSymbol(ident, "int", "1", var_nam);
+        if (has_init) {
+            int var_val = init_val -> Calc();
+            if(var_val != 0) glb_IR += std::to_string(var_val) + "\n";
+            else glb_IR += "zeroinit\n";
+        }
+        else glb_IR += "zeroinit\n";
+        glb_IR += "\n";
+        return 0;
     }
 };
 

@@ -4,13 +4,16 @@
 #include <string>
 #include <memory> 
 #include <optional>
-#include "mySymboltable.h"
+#include "Symboltable.h"
+#include "AST.h"
 using namespace std;
 
+    int fl = 0;
 
     void mySymboltable::insertSymbol(const string& name, const string& type, const string& value,const string& koopalR){
         if(!checkSymbolOK(name)){
             cout<<"error! "<<name<<" has been declared"<<endl;
+            fl = 1;
             return;
         }
        // shared_ptr<Symbol> ptr = make_shared<Symbol>(type,value,koopalR);
@@ -52,7 +55,6 @@ using namespace std;
     void Scope::insertScope(const mySymboltable& mst){
         scopes.push(mst);
     }
-
     
 
    
@@ -63,7 +65,6 @@ using namespace std;
     mySymboltable* topScope = &scopes.top(); 
     return topScope; 
 }
-
 
 
 
