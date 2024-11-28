@@ -182,7 +182,7 @@ int Mylexer::IsdualSign(){
 //check whether is valid dual
 int Mylexer::IsDual(){
     int DUAL[5][2]={{0,EQ},{1,SAR},{2,SHL},{3,LAND},{4,LOR}};
-    int LEGENE[3][2]={{5,NE},{1,LE},{2,GE}};
+    int LEGENE[3][2]={{5,NE},{1,GE},{2,LE}};
 
     for (int i = 0; i < 5; i++){
         if(IsdualSign()==DualTable[DUAL[i][0]]){

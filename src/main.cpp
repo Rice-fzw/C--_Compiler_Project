@@ -69,7 +69,6 @@ int main(int argc, const char *argv[]) {
     stringstream ss_riscv;
     cout.rdbuf(ss_riscv.rdbuf());//redirect the "cout"
 
-    CalculateStackSize(raw);
     Visit(raw);//deal with raw IR program
     koopa_delete_raw_program_builder(builder);
 
