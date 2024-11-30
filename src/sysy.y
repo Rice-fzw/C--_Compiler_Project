@@ -34,6 +34,7 @@ using namespace std;
   std::string *str_val; 
   int int_val;
   BaseAST *ast_val;
+  std::vector<std::unique_ptr<BaseAST>> *vec_val;
 }
 
 //关键字Token
@@ -65,7 +66,7 @@ using namespace std;
 
 %type <ast_val> FuncDef FuncType CompUnitItem Block Stmt BlockItem BlockItems
 %type <ast_val> Exp UnaryExp PrimaryExp MulExp AddExp
-%type <ast_val> RelExp EqExp LAndExp LOrExp
+%type <ast_val> RelExp EqExp LAndExp LOrExp LVal
 %type <ast_val> BitOrExp BitXorExp BitAndExp ShiftExp
 %type <ast_val> OptionalExp
 
@@ -74,7 +75,10 @@ using namespace std;
 %type <ast_val> ConstDecl ConstDef ConstDefList ConstInitVal Decl ConstExp
 %type <ast_val> VarDecl VarDefList VarDef InitVal
 %type <ast_val> FuncFParam FuncFParams FuncRParams
-%type <str_val> BType LVal
+%type <ast_val> InitValList
+%type <str_val> BType
+
+%type <vec_val> ConstExpList
 
 
 %%
@@ -152,11 +156,38 @@ ConstDef
   : IDENT '=' ConstInitVal {
     $$ = new ConstDefAST("=", *$1, std::unique_ptr<BaseAST>($3));
   }
+  | IDENT '[' ConstExp ']' '=' ConstInitVal {
+    std::vector<std::unique_ptr<BaseAST>> dims;
+    dims.push_back(std::unique_ptr<BaseAST>($3));
+    $$ = new ConstArrayDefAST(*$1, std::move(dims), std::unique_ptr<BaseAST>($6));
+    delete $1;
+  }
+
   ;
 
 ConstInitVal 
   : ConstExp {
     $$ = $1;
+  }
+  | '{' '}' {
+    std::vector<std::unique_ptr<BaseAST>> empty_elements;
+    $$ = new ArrayInitValAST(std::move(empty_elements), true);
+  }
+  | '{' ConstExpList '}' {
+    $$ = new ArrayInitValAST(std::move(*($2)), true);
+    delete $2;
+  }
+  ;
+
+ConstExpList
+  : ConstExp {
+    auto list = new std::vector<std::unique_ptr<BaseAST>>();
+    list->push_back(std::unique_ptr<BaseAST>($1));
+    $$ = list;
+  }
+  | ConstExpList ',' ConstExp {
+      $1->push_back(std::unique_ptr<BaseAST>($3));
+      $$ = $1;
   }
   ;
 
@@ -186,13 +217,45 @@ VarDef
   | IDENT '=' InitVal {
       $$ = new VarDefAST("=", *$1, std::unique_ptr<BaseAST>($3));
   }
+  | IDENT '[' ConstExp ']' {
+      std::vector<std::unique_ptr<BaseAST>> dims;
+      dims.push_back(std::unique_ptr<BaseAST>($3));
+      $$ = new VarArrayDefAST(*$1, std::move(dims));
+      delete $1;
+  }
+  | IDENT '[' ConstExp ']' '=' InitVal {
+      std::vector<std::unique_ptr<BaseAST>> dims;
+      dims.push_back(std::unique_ptr<BaseAST>($3));
+      $$ = new VarArrayDefAST(*$1, std::move(dims), std::unique_ptr<BaseAST>($6));
+      delete $1;
+  }
   ;
 
 InitVal
   : Exp {
       $$ = $1;
   }
+  | '[' ']' {
+    std::vector<std::unique_ptr<BaseAST>> empty_elements;
+    $$ = new ArrayInitValAST(std::move(empty_elements), false);
+  }
+  | '{' InitValList '}' {
+    $$ = $2;
+  }
   ;
+
+InitValList
+  : InitVal {
+    std::vector<std::unique_ptr<BaseAST>> elements;
+    elements.push_back(std::unique_ptr<BaseAST>($1));
+    $$ = new ArrayInitValAST(std::move(elements), false);
+}
+| InitValList ',' InitVal {
+    auto list = static_cast<ArrayInitValAST*>($1);
+    list->elements.push_back(std::unique_ptr<BaseAST>($3));
+    $$ = list;
+}
+;
 
 FuncDef
   : BType IDENT '(' ')' Block {
@@ -315,7 +378,14 @@ Exp
 
 LVal
   : IDENT {
-    $$ = $1;
+    $$ = new LValAST(*$1);
+    delete $1;
+  }
+  | IDENT '[' Exp ']' { /* 一维数组访问 */
+    std::vector<std::unique_ptr<BaseAST>> indices;
+    indices.push_back(std::unique_ptr<BaseAST>($3));
+    $$ = new ArrayAccessAST(*$1, std::move(indices));
+    delete $1;
   }
   ;
 
@@ -327,7 +397,7 @@ PrimaryExp
   $$ = new PrimaryExpAST($1);
 }
 | LVal {
-  $$ = new PrimaryExpAST($1, true); 
+  $$ = new PrimaryExpAST($1); 
 }
 
 Number

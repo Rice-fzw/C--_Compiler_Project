@@ -434,7 +434,7 @@ class StmtAST : public BaseAST {
 public:
     StmtType type;
     Option<std::unique_ptr<BaseAST>> exp;
-    Option<std::string> lval;
+    Option<std::unique_ptr<BaseAST>> lval;
     Option<std::unique_ptr<BlockAST>> block;
 
     // StmtAST can only be constructed by makeXXX
@@ -448,9 +448,9 @@ public:
     }
 
     //Constructor for assignment
-    static BaseAST* makeAssign(std::string* lval, BaseAST* exp) {
+    static BaseAST* makeAssign(BaseAST* lval, BaseAST* exp) {
         auto stmt = new StmtAST(StmtType::Assign);
-        stmt->lval = Option<std::string>(*lval);
+        stmt->lval = Option(std::unique_ptr<BaseAST>(lval));
         stmt->exp = Option(std::unique_ptr<BaseAST>(exp));
         return stmt;
     }
@@ -503,8 +503,7 @@ public:
                 if (lval.hasValue()) {
                     indent(level + 1);
                     std::cout << "lval: {\n";
-                    indent(level + 2);
-                    std::cout << "ident: " << lval.getValue() << "\n";
+                    lval.getValue()->Dump(level + 2);
                     indent(level + 1);
                     std::cout << "}\n";
                 }
@@ -565,11 +564,16 @@ public:
             case StmtType::Assign: {
                 if (lval.hasValue() && exp.hasValue()) {
                     std::string exp_result = exp.getValue()->dumpIR(tempVarCounter);
-                    std::string var_ptr = "@" + lval.getValue();
+                    // std::string var_ptr = "@" + lval.getValue()->ident; 
 
-                    auto varpit = scopeManager.lookupSymbol(lval.getValue());
-                    std::string var_nam= varpit.value() -> KoopalR;
-                    IR += "  store " + exp_result + ", " + var_nam + "\n";
+                    // auto varpit = scopeManager.lookupSymbol(lval.getValue()->ident);
+                    // std::string var_nam= varpit.value() -> KoopalR;
+                    // IR += "  store " + exp_result + ", " + var_nam + "\n";
+                    std::string store_location = lval.getValue()->dumpIR(tempVarCounter);
+                
+                    // 对于数组访问，store_location已经是正确的地址
+                    // 对于普通变量，store_location是变量名或临时变量
+                    IR += "  store " + exp_result + ", " + store_location + "\n";
                 }
                 return "";
             }
@@ -789,13 +793,17 @@ class PrimaryExpAST : public BaseAST {
   PrimaryExpType type;
   std::unique_ptr<BaseAST> exp;
   int number;
-  std::string LVal;
+  std::unique_ptr<BaseAST> lval; 
 
-  PrimaryExpAST(int val) : type(PrimaryExpType::number), number(val), exp(nullptr), LVal("") {}
+  PrimaryExpAST(int val) 
+      : type(PrimaryExpType::number), number(val), exp(nullptr) {}
+
   PrimaryExpAST(std::unique_ptr<BaseAST> e)
-    : type(PrimaryExpType::exp), number(0), exp(std::move(e)) {}
-  PrimaryExpAST(std::string* l, bool isLVal) 
-    : type(PrimaryExpType::LVal), LVal(*l), number(0), exp(nullptr) {}
+      : type(PrimaryExpType::exp), number(0), exp(std::move(e)) {}
+
+  PrimaryExpAST(BaseAST* l)
+    : type(PrimaryExpType::LVal), number(0), exp(nullptr),
+      lval(std::unique_ptr<BaseAST>(l)) {}
 
   void Dump(int level = 0) const override {
     indent(level);
@@ -813,8 +821,7 @@ class PrimaryExpAST : public BaseAST {
         break;
       case PrimaryExpType::LVal:
         std::cout << "LVal: {\n";
-        indent(level + 2);
-        std::cout << "ident: " << LVal << "\n";
+        lval->Dump(level + 2);
         indent(level + 1);
         std::cout << "}\n";
         break;
@@ -829,24 +836,26 @@ class PrimaryExpAST : public BaseAST {
     } else if (type == PrimaryExpType::exp) {
       return exp->dumpIR(tempVarCounter);
     } else if (type == PrimaryExpType::LVal) {
-      auto varpit = scopeManager.lookupSymbol(LVal);
-      std::string var_type= varpit.value() -> type;
-      std::string var_val = varpit.value() -> value;
-      std::string var_nam= varpit.value() -> KoopalR;
-      if (var_type == "int"){
-        if(var_val == "2"){
-            std::string temp_var = "%" + std::to_string(tempVarCounter++);
-            IR += "  " +  temp_var + " = load " + var_nam + "\n";
-            return temp_var;
-        }
-        //  std::cout<< chk[LVal] << " " << LVal << std::endl;
-          std::string var_ptr = "@" + LVal;  // variable's address
-        //  std::string var_nam=var_ptr + "_" + std::to_string(var_num[var_ptr]++);
-          std::string temp_var = "%" + std::to_string(tempVarCounter++);
-          IR += "  " + temp_var + " = load " + var_nam + "\n";
-          return temp_var;
-      }
-      return var_nam;
+      // auto varpit = scopeManager.lookupSymbol(LVal);
+      // std::string var_type= varpit.value() -> type;
+      // std::string var_val = varpit.value() -> value;
+      // std::string var_nam= varpit.value() -> KoopalR;
+      // if (var_type == "int"){
+      //   if(var_val == "2"){
+      //       std::string temp_var = "%" + std::to_string(tempVarCounter++);
+      //       IR += "  " +  temp_var + " = load " + var_nam + "\n";
+      //       return temp_var;
+      //   }
+      //   //  std::cout<< chk[LVal] << " " << LVal << std::endl;
+      //     std::string var_ptr = "@" + LVal;  // variable's address
+      //   //  std::string var_nam=var_ptr + "_" + std::to_string(var_num[var_ptr]++);
+      //     std::string temp_var = "%" + std::to_string(tempVarCounter++);
+      //     IR += "  " + temp_var + " = load " + var_nam + "\n";
+      //     return temp_var;
+      // }
+      // return var_nam;
+        // 直接使用lval的dumpIR，而不是通过符号表查找
+        return lval->dumpIR(tempVarCounter);
     }
     return "";
   }
@@ -857,10 +866,12 @@ class PrimaryExpAST : public BaseAST {
     } else if (type == PrimaryExpType::exp) {
       return exp->Calc();
     } else if (type == PrimaryExpType::LVal) {
-      auto varpit = scopeManager.lookupSymbol(LVal);
-      std::string var_type= varpit.value() -> type;
-      std::string var_nam= varpit.value() -> KoopalR;
-      return std::stoi(var_nam);
+      // auto varpit = scopeManager.lookbupSymbol(LVal);
+      // std::string var_type= varpit.value() -> type;
+      // std::string var_nam= varpit.value() -> KoopalR;
+      // return std::stoi(var_nam);
+      // 直接使用lval的Calc()方法
+        return lval->Calc();
     }
     assert(false);
   }
@@ -1771,5 +1782,293 @@ class BitExpAST : public BaseAST {
     assert(false);
     return 0;
   }
+};
+
+// 数组类型节点
+class ArrayTypeAST : public BaseAST {
+public:
+    std::vector<std::unique_ptr<BaseAST>> dims;  // expressions for each dimension
+    std::string base_type;                       // int
+
+    ArrayTypeAST(std::string type, std::vector<std::unique_ptr<BaseAST>> dimensions)
+        : base_type(type), dims(std::move(dimensions)) {}
+
+    void Dump(int level = 0) const override {
+        indent(level);
+        std::cout << "ArrayType {\n";
+        indent(level + 1);
+        std::cout << "base_type: " << base_type << "\n";
+        indent(level + 1);
+        std::cout << "dimensions: [\n";
+        for (const auto& dim : dims) {
+            dim->Dump(level + 2);
+        }
+        indent(level + 1);
+        std::cout << "]\n";
+        indent(level);
+        std::cout << "}\n";
+    }
+
+    std::string dumpIR(int& tempVarCounter) const override {
+        // 检查是否在全局作用域
+        bool isGlobal = scopeManager.isGlobalScope();
+        
+        // 计算总大小和各维度大小
+        std::vector<int> dim_sizes;
+        int total_size = 1;
+        for(const auto& dim : dims) {
+            int size = dim->Calc();
+            dim_sizes.push_back(size);
+            total_size *= size;
+        }
+        
+        // 生成类型字符串
+        std::string type_str = "[i32";
+        for(const auto& size : dim_sizes) {
+            type_str += ", " + std::to_string(size);
+        }
+        type_str += "]";
+        
+        return type_str;
+    }
+};
+
+// 数组初始化节点
+class ArrayInitValAST : public BaseAST {
+public:
+    std::vector<std::unique_ptr<BaseAST>> elements;
+    bool is_const;
+
+    ArrayInitValAST(std::vector<std::unique_ptr<BaseAST>>&& elems, bool is_constant = false)
+        : elements(std::move(elems)), is_const(is_constant) {}
+
+    void Dump(int level = 0) const override {
+        indent(level);
+        std::cout << "ArrayInitVal {\n";
+        indent(level + 1);
+        std::cout << "elements: [\n";
+        for (const auto& elem : elements) {
+            elem->Dump(level + 2);
+        }
+        indent(level + 1);
+        std::cout << "]\n";
+        indent(level);
+        std::cout << "}\n";
+    }
+
+    std::string dumpIR(int& tempVarCounter) const override {
+        if(is_const) {
+            // 常量数组初始化必须使用常量表达式
+            if(elements.empty()) {
+                return "zeroinit";
+            }
+            
+            std::string init_str = "{";
+            for(size_t i = 0; i < elements.size(); ++i) {
+                if(i > 0) init_str += ", ";
+                // 对常量数组，直接计算初始值
+                init_str += std::to_string(elements[i]->Calc());
+            }
+            init_str += "}";
+            return init_str;
+        } else {
+            // 对于变量数组，生成多个store指令
+            std::string arr_ptr = "@" + elements[0]->dumpIR(tempVarCounter);  // 获取数组基地址
+            for(size_t i = 0; i < elements.size(); ++i) {
+                std::string elem_ptr = "%" + std::to_string(tempVarCounter++);
+                IR += "  " + elem_ptr + " = getelemptr " + arr_ptr + ", " + std::to_string(i) + "\n";
+                IR += "  store " + elements[i]->dumpIR(tempVarCounter) + ", " + elem_ptr + "\n";
+            }
+            return arr_ptr;
+        }
+    }
+};
+
+// 数组访问节点
+class ArrayAccessAST : public BaseAST {
+public:
+    std::string ident;
+    std::vector<std::unique_ptr<BaseAST>> indices;
+
+    ArrayAccessAST(std::string name, std::vector<std::unique_ptr<BaseAST>> idx)
+        : ident(name), indices(std::move(idx)) {}
+
+    void Dump(int level = 0) const override {
+        indent(level);
+        std::cout << "ArrayAccess {\n";
+        indent(level + 1);
+        std::cout << "array: " << ident << "\n";
+        indent(level + 1);
+        std::cout << "indices: [\n";
+        for (const auto& idx : indices) {
+            idx->Dump(level + 2);
+        }
+        indent(level + 1);
+        std::cout << "]\n";
+        indent(level);
+        std::cout << "}\n";
+    }
+
+    std::string dumpIR(int& tempVarCounter) const override {
+        auto array_sym = scopeManager.lookupSymbol(ident);
+        if(!array_sym.has_value() || !array_sym.value()->is_array) {
+            std::cerr << "Error: Invalid array access" << std::endl;
+            fl = 1;  // 设置错误标志
+            return "";
+        }
+        
+        // 检查维度数量是否匹配
+        if(indices.size() != array_sym.value()->array_dims.size()) {
+            std::cerr << "Error: Array dimension mismatch" << std::endl;
+            fl = 1;
+            return "";
+        }
+        
+        // 生成数组访问的 IR 代码
+        std::string current_ptr = array_sym.value()->KoopalR;
+        for(const auto& index : indices) {
+            std::string idx_val = index->dumpIR(tempVarCounter);
+            std::string elem_ptr = "%" + std::to_string(tempVarCounter++);
+            IR += "  " + elem_ptr + " = getelemptr " + current_ptr + ", " + idx_val + "\n";
+            current_ptr = elem_ptr;
+        }
+        
+        // 加载数组元素值
+        std::string result = "%" + std::to_string(tempVarCounter++);
+        IR += "  " + result + " = load " + current_ptr + "\n";
+        
+        return result;
+    }
+};
+
+// 数组声明的公共基类
+class ArrayDefBaseAST : public BaseAST {
+public:
+    std::string ident;                          // name
+    std::vector<std::unique_ptr<BaseAST>> dims; // expressions for each dimension
+
+    ArrayDefBaseAST(std::string name, std::vector<std::unique_ptr<BaseAST>> dimensions)
+        : ident(name), dims(std::move(dimensions)) {}
+
+    virtual void Dump(int level = 0) const override {
+        indent(level);
+        std::cout << "ArrayDef {\n";
+        indent(level + 1);
+        std::cout << "ident: " << ident << "\n";
+        indent(level + 1);
+        std::cout << "dimensions: [\n";
+        for(const auto& dim : dims) {
+            dim->Dump(level + 2);
+        }
+        indent(level + 1);
+        std::cout << "]\n";
+    }
+};
+
+// 常量数组声明AST节点
+class ConstArrayDefAST : public ArrayDefBaseAST {
+public:
+    std::unique_ptr<BaseAST> init_val;  // 初始化值
+
+    ConstArrayDefAST(std::string name, 
+                    std::vector<std::unique_ptr<BaseAST>> dimensions,
+                    std::unique_ptr<BaseAST> init)
+        : ArrayDefBaseAST(name, std::move(dimensions)), 
+          init_val(std::move(init)) {}
+
+    void Dump(int level = 0) const override {
+        ArrayDefBaseAST::Dump(level);  // 调用基类的Dump
+        indent(level + 1);
+        std::cout << "init_val: {\n";
+        if(init_val) {
+            init_val->Dump(level + 2);
+        }
+        indent(level + 1);
+        std::cout << "}\n";
+        indent(level);
+        std::cout << "}\n";
+    }
+
+    std::string dumpIR(int& tempVarCounter) const override {
+        // 计算数组总大小
+        std::string total_size = "1";
+        for(const auto& dim : dims) {
+            int dim_size = dim->Calc();  // 使用Calc()获取常量维度大小
+            total_size = std::to_string(std::stoi(total_size) * dim_size);
+        }
+        
+        // 生成数组分配和初始化的IR
+        std::string var_ptr = "@" + ident;
+        std::string var_nam = var_ptr + "_" + std::to_string(var_num[var_ptr]++);
+
+        if(init_val) {
+            // 带初始化的情况
+            int init_val_ir = init_val->Calc();
+            mySymboltable* topscope = scopeManager.top();
+            topscope->insertArraySymbol(ident, "const_array", dims, std::to_string(init_val_ir));
+        } else {
+            // 不带初始化的情况
+            mySymboltable* topscope = scopeManager.top();
+            topscope->insertArraySymbol(ident, "const_array", dims, "0");
+        }
+
+        return var_ptr;
+    }
+};
+
+// 变量数组声明AST节点
+class VarArrayDefAST : public ArrayDefBaseAST {
+public:
+    std::unique_ptr<BaseAST> init_val;  // 可选的初始化值
+    bool has_init;                      // 是否有初始化
+
+    VarArrayDefAST(std::string name, 
+                  std::vector<std::unique_ptr<BaseAST>> dimensions)
+        : ArrayDefBaseAST(name, std::move(dimensions)), 
+          has_init(false) {}
+
+    VarArrayDefAST(std::string name, 
+                  std::vector<std::unique_ptr<BaseAST>> dimensions,
+                  std::unique_ptr<BaseAST> init)
+        : ArrayDefBaseAST(name, std::move(dimensions)), 
+          init_val(std::move(init)),
+          has_init(true) {}
+
+    void Dump(int level = 0) const override {
+        ArrayDefBaseAST::Dump(level);  // 调用基类的Dump
+        if(has_init) {
+            indent(level + 1);
+            std::cout << "init_val: {\n";
+            init_val->Dump(level + 2);
+            indent(level + 1);
+            std::cout << "}\n";
+        }
+        indent(level);
+        std::cout << "}\n";
+    }
+
+    std::string dumpIR(int& tempVarCounter) const override {
+        // 计算数组总大小
+        std::string total_size = "1";
+        for(const auto& dim : dims) {
+            int dim_size = dim->Calc();  // 使用Calc()获取常量维度大小
+            total_size = std::to_string(std::stoi(total_size) * dim_size);
+        }
+        
+        // 生成数组分配和初始化的IR
+        std::string var_ptr = "@" + ident;
+        std::string var_nam = var_ptr + "_" + std::to_string(var_num[var_ptr]++);
+        IR += "  " + var_nam + " = alloc [i32, " + total_size + "]\n";
+        
+        mySymboltable* topscope = scopeManager.top();
+        topscope->insertArraySymbol(ident, "array", dims, var_nam);
+
+        if(has_init) {
+            // TODO: 处理初始化
+            // 需要遍历init_val并生成对应的store指令
+        }
+
+        return var_ptr;
+    }
 };
 #endif
