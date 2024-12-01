@@ -235,7 +235,7 @@ InitVal
   : Exp {
       $$ = $1;
   }
-  | '[' ']' {
+  | '{' '}' {
     std::vector<std::unique_ptr<BaseAST>> empty_elements;
     $$ = new ArrayInitValAST(std::move(empty_elements), false);
   }

@@ -5,24 +5,10 @@
 #include <memory> 
 #include <optional>
 #include "Symboltable.h"
-#include "AST.h"
+#include <AST.h>
 using namespace std;
 
-    int fl = 0;
-
-    Symbol::Symbol(std::string t, std::string v, std::string k) 
-    : type(t), value(v), KoopalR(k), is_array(false), total_size(0) {}
-
-    Symbol::Symbol(std::string t, const std::vector<std::unique_ptr<BaseAST>>& dims, 
-                std::string v, std::string k) 
-        : type(t), value(v), KoopalR(k), is_array(true) {
-        total_size = 1;
-        for(const auto& dim : dims) {
-            int dim_size = dim->Calc();  // 现在可以调用Calc()了
-            array_dims.push_back(dim_size);
-            total_size *= dim_size;
-        }
-    }
+int fl = 0;
 
     void mySymboltable::insertSymbol(const string& name, const string& type, const string& value,const string& koopalR){
         if(!checkSymbolOK(name)){
@@ -33,6 +19,15 @@ using namespace std;
        // shared_ptr<Symbol> ptr = make_shared<Symbol>(type,value,koopalR);
         Symboltable[name] = make_shared<Symbol>(type, value, koopalR); 
         
+    }
+
+    void mySymboltable::insertSymbol(const string& name, const string& type, const string& value, const string& koopalR, const std::vector<int>& ele) {
+        if (!checkSymbolOK(name)) {
+            cout << "error! " << name << " has been declared" << endl;
+            fl = 1;
+            return;
+        }
+        Symboltable[name] = make_shared<Symbol>(type, value, koopalR, ele);
     }
 
     bool mySymboltable::checkSymbolOK(string name){
@@ -52,71 +47,25 @@ using namespace std;
         return nullopt;
     }
 
-    // void mySymboltable::printSymbolTable() {
-    //     if (Symboltable.empty()) {
-    //         cout << "  (Empty Scope)"<<endl;
-    //         return;
-    //     }
-
-    //     for (const auto& [name, symbol] : Symboltable) {
-    //         cout << "  Name: " << name << ", Type: " << symbol->type
-    //             << ", Value: " << symbol->value
-    //             << ", koopa: " << symbol->KoopalR
-    //             << endl;
-    //     }
-    // }
-
     void mySymboltable::printSymbolTable() {
-    if (Symboltable.empty()) {
-        cout << "  (Empty Scope)" << endl;
-        return;
-    }
-
-    for (const auto& [name, symbol] : Symboltable) {
-        cout << "  Name: " << name << ", Type: " << symbol->type
-            << ", Value: " << symbol->value
-            << ", koopa: " << symbol->KoopalR;
-        if (symbol->is_array) {
-            cout << ", Dims: [";
-            for (size_t i = 0; i < symbol->array_dims.size(); ++i) {
-                if (i > 0) cout << ", ";
-                cout << symbol->array_dims[i];
-            }
-            cout << "]";
-        }
-        cout << endl;
-    }
-}
-
-    void mySymboltable::insertArraySymbol(const std::string& name, 
-                                        const std::string& type,
-                                        const std::vector<std::unique_ptr<BaseAST>>& dims,
-                                        const std::string& value, 
-                                        const std::string& koopalR) {
-        if (!checkSymbolOK(name)) {
-            std::cout << "error! " << name << " has been declared" << std::endl;
-            fl = 1;
+        if (Symboltable.empty()) {
+            cout << "  (Empty Scope)"<<endl;
             return;
         }
-        
-        // 验证数组维度的合法性
-        for (const auto& dim : dims) {
-            int size = dim->Calc();
-            if (size <= 0) {
-                std::cout << "error! Array size must be positive" << std::endl;
-                fl = 1;
-                return;
-            }
-        }
-        
-        Symboltable[name] = std::make_shared<Symbol>(type, dims, value, koopalR);
-    }
 
+        for (const auto& [name, symbol] : Symboltable) {
+            cout << "  Name: " << name << ", Type: " << symbol->type
+                << ", Value: " << symbol->value
+                << ", koopa: " << symbol->KoopalR
+                << endl;
+        }
+    }
 
     void Scope::insertScope(const mySymboltable& mst){
         scopes.push(mst);
     }
 
+   
    mySymboltable* Scope::top() {
     if (scopes.empty()) {
         throw std::runtime_error("Stack is empty. Cannot top.");
@@ -124,6 +73,9 @@ using namespace std;
     mySymboltable* topScope = &scopes.top(); 
     return topScope; 
 }
+
+
+
 
     void Scope::exitScope(){
         if (!scopes.empty()) {

@@ -36,11 +36,11 @@ int main(int argc, const char *argv[]) {
     string ir_str = ss.str();
     const char *ir = ir_str.data();
     cout.rdbuf(cout_buf);
-    //std :: cout << ir ;
+  //  std :: cout << ir ;
     ofstream out_file(output);  // open the output file
     out_file << ir_str;         // write the IR string to the file
     out_file.close();
-  }
+   }
   else if (string(mode) == "-riscv" || string(mode) == "-perf") {
     stringstream ss;
     streambuf* cout_buf = cout.rdbuf();
