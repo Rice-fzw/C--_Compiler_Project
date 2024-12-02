@@ -48,6 +48,8 @@ using namespace std;
 %token SHL SAR
 //自增/自减运算符Token
 %token AA MM
+// += -= *= /=
+%token AE ME UE DE
 //优先级
 %left LOR           // ||
 %left LAND          // &&
@@ -253,13 +255,13 @@ InitValList
     std::vector<std::unique_ptr<BaseAST>> elements;
     elements.push_back(std::unique_ptr<BaseAST>($1));
     $$ = new ArrayInitValAST(std::move(elements), false);
-}
-| InitValList ',' InitVal {
-    auto list = static_cast<ArrayInitValAST*>($1);
-    list->elements.push_back(std::unique_ptr<BaseAST>($3));
-    $$ = list;
-}
-;
+  } 
+  | InitValList ',' InitVal {
+      auto list = static_cast<ArrayInitValAST*>($1);
+      list->elements.push_back(std::unique_ptr<BaseAST>($3));
+      $$ = list;
+  }
+  ;
 
 FuncDef
   : BType IDENT '(' ')' Block {
@@ -336,43 +338,64 @@ BlockItem
   ;
 
 Stmt
-    : RETURN OptionalExp ';' {
-        $$ = StmtAST::makeReturn($2);
-    }
-    | LVal '=' Exp ';' {
-        $$ = StmtAST::makeAssign($1, $3);
-    }
-    | OptionalExp ';' {
-        $$ = StmtAST::makeExpression($1);
-    }
-    | Block {
-        $$ = StmtAST::makeBlock($1);
-    }
-    | IF '(' Exp ')' Stmt {  // if without else
-        $$ = new IfStmtAST($3, $5);
-    }
-    | IF '(' Exp ')' Stmt ELSE Stmt {  // if with else
-        $$ = new IfStmtAST($3, $5, $7);
-    }
-    | WHILE '(' Exp ')' Stmt {
-    $$ = new WhileStmtAST($3, $5);
-    }
-    | BREAK ';' {
-        $$ = StmtAST::makeBreak();
-    }
-    | CONTINUE ';' {
-        $$ = StmtAST::makeContinue();
-    }
-    ;
+  : RETURN OptionalExp ';' {
+      $$ = StmtAST::makeReturn($2);
+  }
+  | LVal '=' Exp ';' {
+      $$ = StmtAST::makeAssign($1, $3);
+  }
+  | OptionalExp ';' {
+      $$ = StmtAST::makeExpression($1);
+  }
+  | Block {
+      $$ = StmtAST::makeBlock($1);
+  }
+  | IF '(' Exp ')' Stmt {  // if without else
+      $$ = new IfStmtAST($3, $5);
+  }
+  | IF '(' Exp ')' Stmt ELSE Stmt {  // if with else
+      $$ = new IfStmtAST($3, $5, $7);
+  }
+  | WHILE '(' Exp ')' Stmt {
+  $$ = new WhileStmtAST($3, $5);
+  }
+  | BREAK ';' {
+      $$ = StmtAST::makeBreak();
+  }
+  | CONTINUE ';' {
+      $$ = StmtAST::makeContinue();
+  }
+  | LVal AE Exp ';' {
+      // 创建等效的 a = a + b 表达式
+      auto lval_copy = new LValAST(static_cast<LValAST*>($1)->ident);
+      auto add_exp = new AddExpAST("+", std::unique_ptr<BaseAST>(lval_copy), std::unique_ptr<BaseAST>($3));
+      $$ = StmtAST::makeAssign($1, add_exp);
+  }
+  | LVal ME Exp ';' {
+      auto lval_copy = new LValAST(static_cast<LValAST*>($1)->ident);
+      auto sub_exp = new AddExpAST("-", std::unique_ptr<BaseAST>(lval_copy), std::unique_ptr<BaseAST>($3));
+      $$ = StmtAST::makeAssign($1, sub_exp);
+  }
+  | LVal UE Exp ';' {
+      auto lval_copy = new LValAST(static_cast<LValAST*>($1)->ident);
+      auto mul_exp = new MulExpAST("*", std::unique_ptr<BaseAST>(lval_copy), std::unique_ptr<BaseAST>($3));
+      $$ = StmtAST::makeAssign($1, mul_exp);
+  }
+  | LVal DE Exp ';' {
+      auto lval_copy = new LValAST(static_cast<LValAST*>($1)->ident);
+      auto div_exp = new MulExpAST("/", std::unique_ptr<BaseAST>(lval_copy), std::unique_ptr<BaseAST>($3));
+      $$ = StmtAST::makeAssign($1, div_exp);
+  }
+  ;
 
 OptionalExp
-    : /* empty */ {
-        $$ = nullptr;
-    }
-    | Exp {
-        $$ = $1;
-    }
-    ;
+  : /* empty */ {
+      $$ = nullptr;
+  }
+  | Exp {
+      $$ = $1;
+  }
+  ;
 
 Exp
   : LOrExp {
@@ -394,15 +417,15 @@ LVal
   ;
 
 PrimaryExp
-: '(' Exp ')' {
-  $$ = new PrimaryExpAST(unique_ptr<BaseAST>($2));
-}
-| Number {
-  $$ = new PrimaryExpAST($1);
-}
-| LVal {
-  $$ = new PrimaryExpAST($1); 
-}
+  : '(' Exp ')' {
+    $$ = new PrimaryExpAST(unique_ptr<BaseAST>($2));
+  }
+  | Number {
+    $$ = new PrimaryExpAST($1);
+  }
+  | LVal {
+    $$ = new PrimaryExpAST($1); 
+  }
 
 Number
   : INT_CONST {
@@ -458,13 +481,13 @@ FuncRParams
   }
   
 MulExp
-: UnaryExp {
-  $$ = new MulExpAST(unique_ptr<BaseAST>($1));
-}
-| MulExp Mulop UnaryExp {
-  $$ = new MulExpAST(*$2, unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
-}
-;
+  : UnaryExp {
+    $$ = new MulExpAST(unique_ptr<BaseAST>($1));
+  }
+  | MulExp Mulop UnaryExp {
+    $$ = new MulExpAST(*$2, unique_ptr<BaseAST>($1), unique_ptr<BaseAST>($3));
+  }
+  ;
 
 Mulop
   : '*' {
