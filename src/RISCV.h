@@ -1,6 +1,6 @@
 #include <iostream>
 #include <unordered_map>
-#include "koopa.h"
+#include "simplified_llvm.h"
 
 
 const int PARAM_NUM=8;

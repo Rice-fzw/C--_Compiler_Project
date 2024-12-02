@@ -13,9 +13,9 @@ else()
 endif()
 
 # options about libraries and includes
-set(LIB_DIR "$ENV{CDE_LIBRARY_PATH}/native" CACHE STRING "directory of libraries")
-set(INC_DIR "$ENV{CDE_INCLUDE_PATH}" CACHE STRING "directory of includes")
-message(STATUS "Library directory: ${LIB_DIR}")
+set(LIB_DIR "opt/lib/native" CACHE STRING "directory of libraries")
+set(INC_DIR "opt/include" CACHE STRING "directory of includes")
+message(STATUS "Library directory:  ${LIB_DIR}")
 message(STATUS "Include directory: ${INC_DIR}")
 
 # find Bison

@@ -3,9 +3,9 @@
 
 #include <string>
 #include <fstream>
-#include "sysy.tab.hpp"  // 从bison生成的头文件中获取token定义
+#include "sysy.tab.hpp"  
 
-extern YYSTYPE yylval;  // 声明yylval
+extern YYSTYPE yylval;  
 
 class Mylexer{
     public:
@@ -34,14 +34,12 @@ class Mylexer{
         char current_char = ' '; 
         std::ifstream infile;
       
-        const char DualTable[6] = { '=','>','<','&','|','!' };  
+        const char DualTable[10] = { '=','>','<','&','|','!','+','-','*','/'};   
 
 };
 
-// 声明全局lexer对象
 extern Mylexer* lexer;
 
-// 声明包装函数
 extern "C" {
     int yylex();
 }

@@ -171,7 +171,7 @@ int Mylexer::IsIdentifierOrKeyword(){
 
 //check whether is a dualsign
 int Mylexer::IsdualSign(){
-    for (int j = 0; j < 6; j++){
+    for (int j = 0; j < 10; j++){
         if (current_char == DualTable[j]){
             return DualTable[j];
         }
@@ -181,10 +181,12 @@ int Mylexer::IsdualSign(){
 
 //check whether is valid dual
 int Mylexer::IsDual(){
-    int DUAL[5][2]={{0,EQ},{1,SAR},{2,SHL},{3,LAND},{4,LOR}};
-    int LEGENE[3][2]={{5,NE},{1,GE},{2,LE}};
+    
 
-    for (int i = 0; i < 5; i++){
+    int DUAL[7][2]={{0,EQ},{1,SAR},{2,SHL},{3,LAND},{4,LOR},{6,AA},{7,MM}};
+    int LEGENE[7][2]={{5,NE},{1,GE},{2,LE},{8,UE},{9,DE},{6,AE},{7,ME}};
+
+    for (int i = 0; i < 7; i++){
         if(IsdualSign()==DualTable[DUAL[i][0]]){
             nextcharacter();
             if (IsdualSign()==DualTable[DUAL[i][0]]){
@@ -194,14 +196,13 @@ int Mylexer::IsDual(){
                 if(current_char=='='){
                     nextcharacter();
                     return LEGENE[i][1];
-                }else{
-                    return DualTable[DUAL[i][0]];
                 } 
-            } 
+                return DualTable[DUAL[i][0]];
+                } 
         }    
     }
  
-    for (int i = 0; i < 1; i++){
+    for (int i = 0; i < 7; i++){
         if(IsdualSign()==DualTable[LEGENE[i][0]]){
             nextcharacter();
             if (IsdualSign()=='='){
@@ -274,10 +275,6 @@ int Mylexer::yylex() {
     int c = current_char;  
     nextcharacter();
     switch (c) {
-        case '+': return '+';
-        case '-': return '-';
-        case '*': return '*';
-        case '/': return '/';
         case '%': return '%';
 
         case '(': return '(';
@@ -287,10 +284,9 @@ int Mylexer::yylex() {
         case ';': return ';';
         case ',': return ',';
 
-        case '^': return '^';
+        case '^': return '^';        
         case '[': return '[';
         case ']': return ']';
-
         // default:
         //     return 0;
     }

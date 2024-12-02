@@ -156,10 +156,11 @@ public:
           //  std::cout<<"qwq";
             decl->Calc();
         }
-//        std::cout<<glb_IR+IR;
+        
         // 再处理所有函数定义
         for (const auto& func : funcdefs) {
             func->dumpIR(tempVarCounter);
+          //  std::cout<<glb_IR+IR;
         }
         if (!fl) std::cout << glb_IR << IR;
         return "";
@@ -435,7 +436,7 @@ public:
 //        std::cout<<"here";
       auto varpit = scopeManager.lookupSymbol(ident);
       std::string var_nam = varpit.value() -> KoopalR;
-      return /*std::stoi(var_nam)*/0;
+      return std::stoi(var_nam);
     }
 };
 
@@ -1945,7 +1946,7 @@ public:
       //  std::cout<<"hqweqe\n";
         std::string ident = list_nam.back();
         std::string arr_ptr = ident + "_" + std::to_string(var_num[list_nam.back()]-1);  // 获取数组基地址
-        if(is_const) {
+      /*  if(is_const) {
             std::vector <int> ele;
             // 常量数组初始化必须使用常量表达式
             if(elements.empty()) {
@@ -1953,7 +1954,7 @@ public:
                     ele.push_back(0);
                 }
                 mySymboltable* topscope = scopeManager.top();
-                topscope->insertSymbol(ident, "const_array", "2", arr_ptr, ele);
+                topscope->insertSymbol(ident, "array", "2", arr_ptr, ele);
                 IR += "zeroinit\n";
                 return "zeroinit";
             }
@@ -1974,14 +1975,14 @@ public:
          //   init_str += "}";
           //  IR += init_str + "\n";
             mySymboltable* topscope = scopeManager.top();
-            topscope->insertSymbol(ident, "const_array", "2", arr_ptr, ele);
+            topscope->insertSymbol(ident, "array", "2", arr_ptr, ele);
             return std::to_string(elements.size());
-        } else {
+        } else {*/
             // 对于变量数组，生成多个store指令
           //  int length = stoi(elements[0]->dumpIR(tempVarCounter));
-            std::string arr_ptr = list_nam.back() + "_" + std::to_string(var_num[list_nam.back()]-1);;  // 获取数组基地址
+          //  std::string arr_ptr = list_nam.back() + "_" + std::to_string(var_num[list_nam.back()]-1);;  // 获取数组基地址
             for(size_t i = 0; i < elements.size(); ++i) {
-                auto array_sym = scopeManager.lookupSymbol(arr_ptr);
+                auto array_sym = scopeManager.lookupSymbol(ident);
                 std::string elem_ptr = "%" + std::to_string(tempVarCounter++);
                 IR += "  " + elem_ptr + " = getelemptr " + arr_ptr + ", " + std::to_string(i) + "\n";
                 std::string u = elements[i]->dumpIR(tempVarCounter);
@@ -1995,10 +1996,10 @@ public:
                 IR += "  store 0, " + elem_ptr + "\n";
             }
             
-            mySymboltable* topscope = scopeManager.top();
-            topscope->insertSymbol(ident, "array", "2", arr_ptr);
+          //  mySymboltable* topscope = scopeManager.top();
+          //  topscope->insertSymbol(ident, "array", "2", arr_ptr);
             return std::to_string(elements.size());
-        }
+      //  }
     }
 
     virtual int Calc() const override {
@@ -2063,6 +2064,7 @@ public:
 
     std::string dumpIR(int& tempVarCounter) const override {
       //  IR += "\n12312313\n";
+    //  std::cout<<glb_IR+IR;
         std::string u= "@" + ident;
         auto array_sym = scopeManager.lookupSymbol(u);
       /*  if(!array_sym.has_value() || !array_sym.value()->is_array) {
@@ -2084,9 +2086,15 @@ public:
         std::string current_ptr = array_sym.value() -> KoopalR;
       //  std::string type =array_sym.value() -> type;
       //  IR += "12312313" + current_ptr + "\n";
+    //  std::cout<<glb_IR+IR;
+  //    std::cout<<"here!!\n\n";
         if (type == "array" || type == "const_array"){
+      //      std::cout<<"here!!\n\n";
+          //  std::cout<<glb_IR+IR;
             for(const auto& index : indices) {
+             //   std::cout<<glb_IR+IR;
                 std::string idx_val = index->dumpIR(tempVarCounter);
+               // std::cout<<glb_IR+IR;
                 std::string elem_ptr = "%" + std::to_string(tempVarCounter++);
                 IR += "  " + elem_ptr + " = getelemptr " + current_ptr + ", " + idx_val + "\n";
                 current_ptr = elem_ptr;
@@ -2095,16 +2103,18 @@ public:
             // 加载数组元素值
             std::string result = "%" + std::to_string(tempVarCounter++);
             IR += "  " + result + " = load " + current_ptr + "\n";
+            bel[result] = current_ptr;
             return result;
         }
         else if (type == "const_array"){
           //  std::cout<<"hhhhhh\n";
             int idx_val = indices[0]->Calc();
             std::vector<int> elee = array_sym.value() -> ele;
-            std::cout<<idx_val<<"asdfasdfas\n";
+          //  std::cout<<idx_val<<"asdfasdfas\n";
             return "";
            // return std::to_string(elee[std::stoi(idx_val)]);
         }
+     //   std::cout<<glb_IR+IR;
     }
 };
 
@@ -2157,7 +2167,6 @@ public:
     }
 
     std::string dumpIR(int& tempVarCounter) const override {
-        // 计算数组总大小
         std::string total_size = "1";
         for(const auto& dim : dims) {
             int dim_size = dim->Calc();  // 使用Calc()获取常量维度大小
@@ -2167,27 +2176,28 @@ public:
         // 生成数组分配和初始化的IR
         std::string var_ptr = "@" + ident;
         std::string var_nam = var_ptr + "_" + std::to_string(var_num[var_ptr]++);
+        IR += " " + var_nam + " = alloc [i32, " + total_size + "]\n";
+        
+        mySymboltable* topscope = scopeManager.top();
+        topscope->insertSymbol(var_ptr, "array", "1", var_nam);
 
-        if(init_val) {
+     //   if(has_init) {
             list_nam.push_back(var_ptr);
             list_length.push_back(std::stoi(total_size));
-            // 带初始化的情况
-            int init_val_ir = init_val->Calc();
-        //    mySymboltable* topscope = scopeManager.top();
-        //    topscope->insertSymbol(ident, "const_array", "2", var_nam);
-        } else {
-            // 不带初始化的情况
-            return "";
-        }
-
+            init_val->dumpIR(tempVarCounter);
+          //  IR += nmb;
+            // TODO: 处理初始化
+            // 需要遍历init_val并生成对应的store指令
+     //   }
+      //  else{
+      //    IR += "zeroinit\n";
+      //  }
         return var_ptr;
     }
 
     virtual int Calc() const override{
-        // 计算数组总大小
         std::string total_size = "1";
         for(const auto& dim : dims) {
-        //  std::cout<<"here~";
             int dim_size = dim->Calc();  // 使用Calc()获取常量维度大小
             total_size = std::to_string(std::stoi(total_size) * dim_size);
         }
@@ -2195,25 +2205,22 @@ public:
         // 生成数组分配和初始化的IR
         std::string var_ptr = "@" + ident;
         std::string var_nam = var_ptr + "_" + std::to_string(var_num[var_ptr]++);
-        //IR += "global " + var_nam + " = alloc [i32, " + total_size + "]， ";
+        IR += "global " + var_nam + " = alloc [i32, " + total_size + "], ";
         
-     //   mySymboltable* topscope = scopeManager.top();
-      //  topscope->insertSymbol(ident, "array", "1", var_nam);
-        if(init_val) {
-          //  std::cout<<"here~";
+        mySymboltable* topscope = scopeManager.top();
+        topscope->insertSymbol(var_ptr, "array", "1", var_nam);
+
+      //  if(has_init) {
             list_nam.push_back(var_ptr);
             list_length.push_back(std::stoi(total_size));
-            // 带初始化的情况
             init_val->Calc();
-          //  mySymboltable* topscope = scopeManager.top();
-          //  topscope->insertArraySymbol(ident, "const_array", dims, var_nam);
-        } else {
-            // 不带初始化的情况
-
-            return 0;
-          // mySymboltable* topscope = scopeManager.top();
-          //  topscope->insertArraySymbol(ident, "const_array", dims, var_nam);
-        }
+          //  IR += nmb;
+            // TODO: 处理初始化
+            // 需要遍历init_val并生成对应的store指令
+     //   }
+     //   else{
+      //    IR += "zeroinit\n";
+      //  }
         return 0;
     }
 };
@@ -2264,7 +2271,7 @@ public:
         IR += "  " + var_nam + " = alloc [i32, " + total_size + "]\n";
         
         mySymboltable* topscope = scopeManager.top();
-        topscope->insertSymbol(ident, "array", "1", var_nam);
+        topscope->insertSymbol(var_ptr, "array", "1", var_nam);
 
         if(has_init) {
             if(init_val){
@@ -2282,7 +2289,7 @@ public:
                     IR += "  store 0, " + elem_ptr + "\n";
                 }
                 mySymboltable* topscope = scopeManager.top();
-                topscope->insertSymbol(ident, "array", "2", arr_ptr);
+                topscope->insertSymbol(var_ptr, "array", "2", arr_ptr);
             }
           /*  for(int i=std::stoi(nmb)+1;i<=std::stoi(total_size);++i){
                 std::string elem_ptr = "%" + std::to_string(tempVarCounter++);
@@ -2307,10 +2314,10 @@ public:
         // 生成数组分配和初始化的IR
         std::string var_ptr = "@" + ident;
         std::string var_nam = var_ptr + "_" + std::to_string(var_num[var_ptr]++);
-        IR += "global " + var_nam + " = alloc [i32, " + total_size + "]， ";
+        IR += "global " + var_nam + " = alloc [i32, " + total_size + "], ";
         
-      //  mySymboltable* topscope = scopeManager.top();
-      //  topscope->insertSymbol(ident, "array", "1", var_nam);
+        mySymboltable* topscope = scopeManager.top();
+        topscope->insertSymbol(var_ptr, "array", "1", var_nam);
 
         if(has_init) {
             list_nam.push_back(var_ptr);
@@ -2320,7 +2327,9 @@ public:
             // TODO: 处理初始化
             // 需要遍历init_val并生成对应的store指令
         }
-
+        else{
+          IR += "zeroinit\n";
+        }
         return 0;
     }
 };

@@ -51,6 +51,7 @@ using namespace std;
 // += -= *= /=
 %token AE ME UE DE
 //优先级
+%right '=' AE ME UE DE // = += -= *= /=
 %left LOR           // ||
 %left LAND          // &&
 %left '|'
@@ -71,7 +72,7 @@ using namespace std;
 %token <int_val> INT_CONST
 
 %type <ast_val> FuncDef FuncType CompUnitItem Block Stmt BlockItem BlockItems
-%type <ast_val> Exp UnaryExp PrimaryExp MulExp AddExp
+%type <ast_val> Exp AssignExp UnaryExp PrimaryExp MulExp AddExp
 %type <ast_val> RelExp EqExp LAndExp LOrExp LVal
 %type <ast_val> BitOrExp BitXorExp BitAndExp ShiftExp
 %type <ast_val> OptionalExp
@@ -365,27 +366,6 @@ Stmt
   | CONTINUE ';' {
       $$ = StmtAST::makeContinue();
   }
-  | LVal AE Exp ';' {
-      // 创建等效的 a = a + b 表达式
-      auto lval_copy = new LValAST(static_cast<LValAST*>($1)->ident);
-      auto add_exp = new AddExpAST("+", std::unique_ptr<BaseAST>(lval_copy), std::unique_ptr<BaseAST>($3));
-      $$ = StmtAST::makeAssign($1, add_exp);
-  }
-  | LVal ME Exp ';' {
-      auto lval_copy = new LValAST(static_cast<LValAST*>($1)->ident);
-      auto sub_exp = new AddExpAST("-", std::unique_ptr<BaseAST>(lval_copy), std::unique_ptr<BaseAST>($3));
-      $$ = StmtAST::makeAssign($1, sub_exp);
-  }
-  | LVal UE Exp ';' {
-      auto lval_copy = new LValAST(static_cast<LValAST*>($1)->ident);
-      auto mul_exp = new MulExpAST("*", std::unique_ptr<BaseAST>(lval_copy), std::unique_ptr<BaseAST>($3));
-      $$ = StmtAST::makeAssign($1, mul_exp);
-  }
-  | LVal DE Exp ';' {
-      auto lval_copy = new LValAST(static_cast<LValAST*>($1)->ident);
-      auto div_exp = new MulExpAST("/", std::unique_ptr<BaseAST>(lval_copy), std::unique_ptr<BaseAST>($3));
-      $$ = StmtAST::makeAssign($1, div_exp);
-  }
   ;
 
 OptionalExp
@@ -400,6 +380,35 @@ OptionalExp
 Exp
   : LOrExp {
     $$ = $1;
+  }
+  | AssignExp {
+    $$ = $1;
+  }
+  ;
+
+AssignExp
+  : LVal '=' Exp {
+    $$ = StmtAST::makeAssign($1, $3);
+  }
+  | LVal AE Exp {
+    auto lval_copy = new LValAST(static_cast<LValAST*>($1)->ident);
+    auto add_exp = new AddExpAST("+", std::unique_ptr<BaseAST>(lval_copy), std::unique_ptr<BaseAST>($3));
+    $$ = StmtAST::makeAssign($1, add_exp);
+  }
+  | LVal ME Exp {
+    auto lval_copy = new LValAST(static_cast<LValAST*>($1)->ident);
+    auto sub_exp = new AddExpAST("-", std::unique_ptr<BaseAST>(lval_copy), std::unique_ptr<BaseAST>($3));
+    $$ = StmtAST::makeAssign($1, sub_exp);
+  }
+  | LVal UE Exp {
+    auto lval_copy = new LValAST(static_cast<LValAST*>($1)->ident);
+    auto mul_exp = new MulExpAST("*", std::unique_ptr<BaseAST>(lval_copy), std::unique_ptr<BaseAST>($3));
+    $$ = StmtAST::makeAssign($1, mul_exp);
+  }
+  | LVal DE Exp {
+    auto lval_copy = new LValAST(static_cast<LValAST*>($1)->ident);
+    auto div_exp = new MulExpAST("/", std::unique_ptr<BaseAST>(lval_copy), std::unique_ptr<BaseAST>($3));
+    $$ = StmtAST::makeAssign($1, div_exp);
   }
   ;
 
