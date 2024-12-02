@@ -59,8 +59,9 @@ using namespace std;
 %left SHL SAR       // << >>
 %left '+' '-'       // plus minus 
 %left '*' '/' '%'
-%right '!' AA MM    // 前缀自增/自减
-%left AA MM         // 后缀自增/自减
+%right '!'
+%nonassoc PRE_AA PRE_MM    // 前缀++/--，无结合性
+%nonassoc POST_AA POST_MM   // 后缀++/--，无结合性
 
 %start CompUnit  // 明确指定起始规则
 
@@ -422,17 +423,17 @@ UnaryExp
   | '!' UnaryExp {
     $$ = new UnaryExpAST("!", std::unique_ptr<BaseAST>($2));
   }
-  | AA UnaryExp {
+  | AA UnaryExp %prec PRE_AA {
     $$ = new UnaryExpAST("++", std::unique_ptr<BaseAST>($2));
   }
-  | MM UnaryExp {
+  | MM UnaryExp %prec PRE_MM {
     $$ = new UnaryExpAST("--", std::unique_ptr<BaseAST>($2));
   }
-  | UnaryExp AA {
-    $$ = new UnaryExpAST("post++", std::unique_ptr<BaseAST>($2));
+  | UnaryExp AA %prec POST_AA {
+    $$ = new UnaryExpAST("post++", std::unique_ptr<BaseAST>($1));
   }
-  | UnaryExp MM {
-    $$ = new UnaryExpAST("post--", std::unique_ptr<BaseAST>($2));
+  | UnaryExp MM %prec POST_MM {
+    $$ = new UnaryExpAST("post--", std::unique_ptr<BaseAST>($1));
   }
   | IDENT '(' FuncRParams ')' {
       $$ = new UnaryExpAST(*$1, std::unique_ptr<FuncRParamsAST>(static_cast<FuncRParamsAST*>($3)));
