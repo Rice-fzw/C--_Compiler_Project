@@ -938,16 +938,88 @@ class UnaryExpAST : public BaseAST {
   std::string dumpIR(int& tempVarCounter) const override {
       switch (type) {
           case UnaryExpType::Unary_op: {
-              std::string expr_ir = exp->dumpIR(tempVarCounter);
-              if (op == "+") return expr_ir;
+              // 处理后置自增自减操作
+              if (op == "post++" || op == "post--") {
+                  // 先获取变量当前值
+                  std::string expr_ir = exp->dumpIR(tempVarCounter);
                   
-              std::string temp_var = "%" + std::to_string(tempVarCounter++);
-              if (op == "-") {
-                  IR += "  " + temp_var + " = sub 0, " + expr_ir + "\n";
-              } else if (op == "!") {
-                  IR += "  " + temp_var + " = eq " + expr_ir + ", 0\n";
+                  // 保存原值用于返回
+                  std::string orig_val = "%" + std::to_string(tempVarCounter++);
+                  IR += "  " + orig_val + " = add " + expr_ir + ", 0\n";  // 复制原值
+                  
+                  // 计算新值
+                  std::string new_val = "%" + std::to_string(tempVarCounter++);
+                  if (op == "post++") {
+                      IR += "  " + new_val + " = add " + expr_ir + ", 1\n";
+                  } else { // post--
+                      IR += "  " + new_val + " = sub " + expr_ir + ", 1\n";
+                  }
+                  
+                  // 存储新值回变量
+                  // 首先确保exp是一个LVal
+                  auto var = dynamic_cast<const LValAST*>(exp.get());
+                  if (!var) {
+                      std::cerr << "Error: 自增自减操作只能用于变量" << std::endl;
+                      fl = 1;
+                      return "";
+                  }
+                  
+                  // 查找变量并存储新值
+                  auto var_sym = scopeManager.lookupSymbol(var->ident);
+                  if (!var_sym.has_value()) {
+                      std::cerr << "Error: 未定义的变量" << std::endl;
+                      fl = 1;
+                      return "";
+                  }
+                  
+                  IR += "  store " + new_val + ", " + var_sym.value()->KoopalR + "\n";
+                  return orig_val;  // 返回原始值
               }
-              return temp_var;
+              // 处理前缀自增自减操作
+              else if (op == "++" || op == "--") {
+                  // 先获取变量当前值
+                  std::string expr_ir = exp->dumpIR(tempVarCounter);
+                  
+                  // 计算新值
+                  std::string new_val = "%" + std::to_string(tempVarCounter++);
+                  if (op == "++") {
+                      IR += "  " + new_val + " = add " + expr_ir + ", 1\n";
+                  } else { // --
+                      IR += "  " + new_val + " = sub " + expr_ir + ", 1\n";
+                  }
+                  
+                  // 确保exp是一个LVal
+                  auto var = dynamic_cast<const LValAST*>(exp.get());
+                  if (!var) {
+                      std::cerr << "Error: 自增自减操作只能用于变量" << std::endl;
+                      fl = 1;
+                      return "";
+                  }
+                  
+                  // 查找变量并存储新值
+                  auto var_sym = scopeManager.lookupSymbol(var->ident);
+                  if (!var_sym.has_value()) {
+                      std::cerr << "Error: 未定义的变量" << std::endl;
+                      fl = 1;
+                      return "";
+                  }
+                  
+                  IR += "  store " + new_val + ", " + var_sym.value()->KoopalR + "\n";
+                  return new_val;  // 返回新值
+              }
+              // 处理原有的一元操作符
+              else {
+                  std::string expr_ir = exp->dumpIR(tempVarCounter);
+                  if (op == "+") return expr_ir;
+                      
+                  std::string temp_var = "%" + std::to_string(tempVarCounter++);
+                  if (op == "-") {
+                      IR += "  " + temp_var + " = sub 0, " + expr_ir + "\n";
+                  } else if (op == "!") {
+                      IR += "  " + temp_var + " = eq " + expr_ir + ", 0\n";
+                  }
+                  return temp_var;
+              }
           }
 
           case UnaryExpType::Function: {

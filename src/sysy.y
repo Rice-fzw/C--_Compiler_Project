@@ -46,6 +46,8 @@ using namespace std;
 %token LAND LOR
 //位运算符Token
 %token SHL SAR
+//自增/自减运算符Token
+%token AA MM
 //优先级
 %left LOR           // ||
 %left LAND          // &&
@@ -57,7 +59,8 @@ using namespace std;
 %left SHL SAR       // << >>
 %left '+' '-'       // plus minus 
 %left '*' '/' '%'
-%right '!'
+%right '!' AA MM    // 前缀自增/自减
+%left AA MM         // 后缀自增/自减
 
 %start CompUnit  // 明确指定起始规则
 
@@ -418,6 +421,18 @@ UnaryExp
   }
   | '!' UnaryExp {
     $$ = new UnaryExpAST("!", std::unique_ptr<BaseAST>($2));
+  }
+  | AA UnaryExp {
+    $$ = new UnaryExpAST("++", std::unique_ptr<BaseAST>($2));
+  }
+  | MM UnaryExp {
+    $$ = new UnaryExpAST("--", std::unique_ptr<BaseAST>($2));
+  }
+  | UnaryExp AA {
+    $$ = new UnaryExpAST("post++", std::unique_ptr<BaseAST>($2));
+  }
+  | UnaryExp MM {
+    $$ = new UnaryExpAST("post--", std::unique_ptr<BaseAST>($2));
   }
   | IDENT '(' FuncRParams ')' {
       $$ = new UnaryExpAST(*$1, std::unique_ptr<FuncRParamsAST>(static_cast<FuncRParamsAST*>($3)));
