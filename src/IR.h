@@ -272,12 +272,17 @@ public:
             if (i > 0) result += ", ";
             result += params[i]->dumpIR(tempVarCounter);
         }
-                // 处理字符串参数
+        int lfl = 0;
         for (size_t i = 0; i < str_params.size(); ++i) {
-            if (i > 0 || !params.empty()) result += ", ";
-            // 这里可以根据需要处理字符串参数
-            // 比如转换成字符串常量或其他格式
-            result += "\"" + str_params[i] + "\"";
+            for (char c : str_params[i]){
+                if (c == '\\') lfl = 1; 
+                if (c == 'n' && lfl == 1){
+                  result += "  call @putch(10)\n";
+                  lfl=0;continue;
+                }
+                result += "  call @putch(" + std::to_string(static_cast<int>(c)) + ")\n";
+            }
+          //  if (i > 0 || !params.empty()) result += ", ";
         }
         return result;
     }
@@ -1056,12 +1061,14 @@ class UnaryExpAST : public BaseAST {
                 temp_var = "%" + std::to_string(tempVarCounter++);
                 IR += "  " + temp_var + " = call @" + ident + "(";
               }
-              else IR += "  call @" + ident + "(";
+              else{
+                if (ident != "puts") IR += "  call @" + ident + "(";
+              }
               if (rparams.hasValue()) {
                   IR += mid_var;
               }
                   
-              IR += ")\n";
+              if (ident != "puts") IR += ")\n";
               return temp_var;
           }
 

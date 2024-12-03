@@ -150,7 +150,8 @@ int main() {
         if (step > 0) generate();
         print_map();
         if (!try_move()) {
-            putch(71);  // 'G'
+            puts("Game over.");putch(10);
+        /*    putch(71);  // 'G'
             putch(97);  // 'a'
             putch(109); // 'm'
             putch(101); // 'e'
@@ -160,7 +161,7 @@ int main() {
             putch(101); // 'e'
             putch(114); // 'r'
             putch(46);  // '.'
-            putch(10);  // '\n'
+            putch(10);  // '\n'*/
             break;
         }
     }

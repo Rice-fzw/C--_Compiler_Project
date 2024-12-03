@@ -436,6 +436,7 @@ PrimaryExp
   | LVal {
     $$ = new PrimaryExpAST($1); 
   }
+  ;
 
 Number
   : INT_CONST {
@@ -493,6 +494,11 @@ FuncRParams
       // 多个参数
       auto params = static_cast<FuncRParamsAST*>($1);
       params->params.push_back(std::unique_ptr<BaseAST>($3));
+      $$ = params;
+  }
+  | FuncRParams '+' STRING_LITERAL {
+      auto params = static_cast<FuncRParamsAST*>($1);
+      params->str_params.push_back(*$3);
       $$ = params;
   }
   ;
