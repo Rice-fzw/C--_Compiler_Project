@@ -482,12 +482,25 @@ FuncRParams
       params->params.push_back(std::unique_ptr<BaseAST>($1));
       $$ = params;
   }
+  | '"' IDENT '"' {
+    auto params = new FuncRParamsAST(std::vector<std::unique_ptr<BaseAST>>());
+    params->params.push_back(std::unique_ptr<BaseAST>(new LValAST(*$2)));
+    delete $2;
+    $$ = params;
+  }
   | FuncRParams ',' Exp {
       // 多个参数
       auto params = static_cast<FuncRParamsAST*>($1);
       params->params.push_back(std::unique_ptr<BaseAST>($3));
       $$ = params;
   }
+  | FuncRParams ',' IDENT {
+    auto params = static_cast<FuncRParamsAST*>($1);
+    params->params.push_back(std::unique_ptr<BaseAST>(new LValAST(*$3)));
+    delete $3;
+    $$ = params;
+  }
+  ;
   
 MulExp
   : UnaryExp {

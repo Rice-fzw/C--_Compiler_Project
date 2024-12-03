@@ -8,6 +8,7 @@ int inc() {
 void print_a() {
   putint(a);
   putch(10);
+  putch("sdaas");
 }
 
 int main() {
