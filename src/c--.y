@@ -70,6 +70,7 @@ using namespace std;
 
 %token <str_val> IDENT
 %token <int_val> INT_CONST
+%token <str_val> STRING_LITERAL
 
 %type <ast_val> FuncDef FuncType CompUnitItem Block Stmt BlockItem BlockItems
 %type <ast_val> Exp AssignExp UnaryExp PrimaryExp MulExp AddExp
@@ -482,10 +483,10 @@ FuncRParams
       params->params.push_back(std::unique_ptr<BaseAST>($1));
       $$ = params;
   }
-  | '"' IDENT '"' {
-    auto params = new FuncRParamsAST(std::vector<std::unique_ptr<BaseAST>>());
-    params->params.push_back(std::unique_ptr<BaseAST>(new LValAST(*$2)));
-    delete $2;
+  | STRING_LITERAL {
+    auto params = new FuncRParamsAST(std::vector<std::string>());
+    params->str_params.push_back(*$1);
+    delete $1;
     $$ = params;
   }
   | FuncRParams ',' Exp {
@@ -493,12 +494,6 @@ FuncRParams
       auto params = static_cast<FuncRParamsAST*>($1);
       params->params.push_back(std::unique_ptr<BaseAST>($3));
       $$ = params;
-  }
-  | FuncRParams ',' IDENT {
-    auto params = static_cast<FuncRParamsAST*>($1);
-    params->params.push_back(std::unique_ptr<BaseAST>(new LValAST(*$3)));
-    delete $3;
-    $$ = params;
   }
   ;
   

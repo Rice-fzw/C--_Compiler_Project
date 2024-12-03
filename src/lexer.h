@@ -30,6 +30,7 @@ class Mylexer{
         void blankSpace();
 
         int IsdualSign();
+        int IsString();
 
         char current_char = ' '; 
         std::ifstream infile;

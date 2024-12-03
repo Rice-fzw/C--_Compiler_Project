@@ -233,18 +233,32 @@ public:
 class FuncRParamsAST : public BaseAST {
 public:
     std::vector<std::unique_ptr<BaseAST>> params;  // 实参列表
+    std::vector<std::string> str_params;  // 字符串参数列表
 
     // 构造函数
     FuncRParamsAST(std::vector<std::unique_ptr<BaseAST>> params_list)
         : params(std::move(params_list)) {}
+        
+    FuncRParamsAST(std::vector<std::string> str_list)
+        : str_params(std::move(str_list)) {}
 
     void Dump(int level = 0) const override {
         indent(level);
         std::cout << "FuncRParams {\n";
-        indent(level + 1);
-        std::cout << "params: [\n";
-        for (const auto& param : params) {
-            param->Dump(level + 2);
+        if (params.size() != 0 ){
+            indent(level + 1);
+            std::cout << "params: [\n";
+            for (const auto& param : params) {
+                param->Dump(level + 2);
+             }
+        }
+        if(str_params.size() != 0){
+            indent(level + 1);
+            std::cout << "str_params: [\n";
+            for (const auto& string : str_params) {
+                indent(level + 2);
+                std::cout << string << "\n";
+            }
         }
         indent(level + 1);
         std::cout << "]\n";
@@ -257,6 +271,13 @@ public:
         for (size_t i = 0; i < params.size(); ++i) {
             if (i > 0) result += ", ";
             result += params[i]->dumpIR(tempVarCounter);
+        }
+                // 处理字符串参数
+        for (size_t i = 0; i < str_params.size(); ++i) {
+            if (i > 0 || !params.empty()) result += ", ";
+            // 这里可以根据需要处理字符串参数
+            // 比如转换成字符串常量或其他格式
+            result += "\"" + str_params[i] + "\"";
         }
         return result;
     }

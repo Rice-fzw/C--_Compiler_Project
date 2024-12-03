@@ -245,6 +245,24 @@ void Mylexer::skipcomment() {
     }
 }
 
+int Mylexer::IsString() {
+    std::string str;
+    nextcharacter();
+    
+    while (current_char != '"' && current_char != EOF) {
+        str += current_char;
+        nextcharacter();
+    }
+    
+    if (current_char == EOF) {
+        std::cerr << "Error: Unterminated string literal" << std::endl;
+        return 0;
+    }
+    
+    nextcharacter();
+    yylval.str_val = new std::string(str);
+    return STRING_LITERAL;
+}
 
 int Mylexer::yylex() {
     // skip a set of blankspace
@@ -262,6 +280,11 @@ int Mylexer::yylex() {
         return IsIdentifierOrKeyword();
     }
     
+    // check whether is a string
+    if (current_char == '"') {
+        return IsString();
+    }
+
     // check whether is a integer
     if (IsDigit(current_char)) {
         return IsNumber();

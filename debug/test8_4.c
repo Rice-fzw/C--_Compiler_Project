@@ -9,6 +9,7 @@ void print_a() {
   putint(a);
   putch(10);
   putch("sdaas");
+  putch("asd");
 }
 
 int main() {
