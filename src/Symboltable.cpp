@@ -5,7 +5,7 @@
 #include <memory> 
 #include <optional>
 #include "Symboltable.h"
-#include <AST.h>
+#include <IR.h>
 using namespace std;
 
 int fl = 0;

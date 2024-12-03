@@ -1,5 +1,5 @@
-#ifndef AST_H
-#define AST_H
+#ifndef IR_H
+#define IR_H
 
 #include <memory>
 #include <string>
@@ -156,11 +156,10 @@ public:
           //  std::cout<<"qwq";
             decl->Calc();
         }
-        
         // 再处理所有函数定义
         for (const auto& func : funcdefs) {
             func->dumpIR(tempVarCounter);
-          //  std::cout<<glb_IR+IR;
+        //    std::cout<<glb_IR+IR;
         }
         if (!fl) std::cout << glb_IR << IR;
         return "";
@@ -956,24 +955,23 @@ class UnaryExpAST : public BaseAST {
                       IR += "  " + new_val + " = sub " + expr_ir + ", 1\n";
                   }
                   
-                  // 存储新值回变量
-                  // 首先确保exp是一个LVal
-                  auto var = dynamic_cast<const LValAST*>(exp.get());
-                  if (!var) {
-                      std::cerr << "Error: 自增自减操作只能用于变量" << std::endl;
+                  if (bel.find(expr_ir) == bel.end()) {
+                      std::cerr << "Error: Self increasing and decreasing operations can only be used for variables" << std::endl;
                       fl = 1;
                       return "";
                   }
-                  
+                //  std::cout<<"!!!ident: "<<ident<<std::endl;
                   // 查找变量并存储新值
-                  auto var_sym = scopeManager.lookupSymbol(var->ident);
-                  if (!var_sym.has_value()) {
-                      std::cerr << "Error: 未定义的变量" << std::endl;
-                      fl = 1;
-                      return "";
-                  }
+              //    std::cout<<"here\n"<<expr_ir<<"\n"<<ident;
+            //      auto var_sym = scopeManager.lookupSymbol(ident);
+                //  auto var_sym = scopeManager.lookupSymbol(exp->dumpIR(tempVarCounter));
+                //  if (!var_sym.has_value()) {
+                  //    std::cerr << "Error: 未定义的变量" << std::endl;
+                    //  fl = 1;
+                      //return "";
+                  //}
                   
-                  IR += "  store " + new_val + ", " + var_sym.value()->KoopalR + "\n";
+                  IR += "  store " + new_val + ", " + bel[expr_ir]/*var_sym.value()->KoopalR*/ + "\n";
                   return orig_val;  // 返回原始值
               }
               // 处理前缀自增自减操作
@@ -990,9 +988,9 @@ class UnaryExpAST : public BaseAST {
                   }
                   
                   // 确保exp是一个LVal
-                  auto var = dynamic_cast<const LValAST*>(exp.get());
+                /*  auto var = dynamic_cast<const LValAST*>(exp.get());
                   if (!var) {
-                      std::cerr << "Error: 自增自减操作只能用于变量" << std::endl;
+                      // std::cerr << "Error: 自增自减操作只能用于变量" << std::endl;
                       fl = 1;
                       return "";
                   }
@@ -1004,8 +1002,13 @@ class UnaryExpAST : public BaseAST {
                       fl = 1;
                       return "";
                   }
-                  
-                  IR += "  store " + new_val + ", " + var_sym.value()->KoopalR + "\n";
+                  */
+                 if (bel.find(expr_ir) == bel.end()) {
+                      std::cerr << "Error: Self increasing and decreasing operations can only be used for variables" << std::endl;
+                      fl = 1;
+                      return "";
+                  }
+                  IR += "  store " + new_val + ", " + bel[expr_ir]/*var_sym.value()->KoopalR*/ + "\n";
                   return new_val;  // 返回新值
               }
               // 处理原有的一元操作符
@@ -1116,8 +1119,7 @@ class AddExpAST : public BaseAST {
       std::string tempVar = "%" + std::to_string(tempVarCounter++);
       if(op=="+"){
         IR += "  " + tempVar + " = add " + left_ir + ", " + right_ir + "\n";
-      }
-      else if(op=="-"){
+      } else if(op=="-"){
         IR += "  " + tempVar + " = sub " + left_ir + ", " + right_ir + "\n";
       }
       else assert(false);
@@ -1185,29 +1187,22 @@ class MulExpAST : public BaseAST {
       std::string tempVar = "%" + std::to_string(tempVarCounter++);
       if(op=="*"){
         IR += "  " + tempVar + " = mul " + left_ir + ", " + right_ir + "\n";
-      }
-      else if(op=="/"){
+      } else if(op=="/"){
         IR += "  " + tempVar + " = div " + left_ir + ", " + right_ir + "\n";
-      }
-      else if(op=="%"){
+      } else if(op=="%"){
         IR += "  " + tempVar + " = mod " + left_ir + ", " + right_ir + "\n";
-      }
-      // 新加
+      }/*
       else if(op == "&"){
           IR += "  " + tempVar + " = and " + left_ir + ", " + right_ir + "\n";
-      }
-      else if(op == "|"){
+      } else if(op == "|"){
           IR += "  " + tempVar + " = or " + left_ir + ", " + right_ir + "\n";
-      }
-      else if(op == "^"){
+      } else if(op == "^"){
           IR += "  " + tempVar + " = xor " + left_ir + ", " + right_ir + "\n";
-      }
-      else if(op == "<<"){
+      } else if(op == "<<"){
           IR += "  " + tempVar + " = shl " + left_ir + ", " + right_ir + "\n";
-      }
-      else if(op == ">>"){
+      } else if(op == ">>"){
           IR += "  " + tempVar + " = sar " + left_ir + ", " + right_ir + "\n";
-      }
+      }*/
       else assert(false);
       return tempVar;
     }
@@ -1272,17 +1267,13 @@ class RelExpAST : public BaseAST {
       std::string tempVar="%" + std::to_string(tempVarCounter++);
       if (op == "<"){
         IR += "  " + tempVar + " = lt " + left_result + ", " + right_result + "\n";
-      }
-      else if (op == ">"){
+      } else if (op == ">"){
         IR += "  " + tempVar + " = gt " + left_result + ", " + right_result + "\n";
-      }
-      else if (op=="<="){
+      } else if (op=="<="){
         IR += "  " + tempVar + " = le " + left_result + ", " + right_result + "\n";
-      }
-      else if (op==">="){
+      } else if (op==">="){
         IR += "  " + tempVar + " = ge " + left_result + ", " + right_result + "\n";
-      }
-      else assert(false);
+      } else assert(false);
       return tempVar;
     }
     return left_result;
@@ -1345,11 +1336,9 @@ class EqExpAST : public BaseAST {
       std::string tempVar= "%" + std::to_string(tempVarCounter++);
       if (op == "=="){
         IR += "  " + tempVar + " = eq " + left_result + " , " + right_result + "\n";
-      }
-      else if (op == "!="){
+      } else if (op == "!="){
         IR += "  " + tempVar + " = ne " + left_result + " , " + right_result + "\n";
-      }
-      else assert(false);
+      } else assert(false);
       return tempVar;
     }
     return left_result;
@@ -1844,16 +1833,13 @@ class BitExpAST : public BaseAST {
     if (right_AST) {
       std::string right_ir = right_AST->dumpIR(tempVarCounter);
       std::string tempVar = "%" + std::to_string(tempVarCounter++);
-      
       if(op == "&"){
         IR += "  " + tempVar + " = and " + left_ir + ", " + right_ir + "\n";
-      }
-      else if(op == "|"){
+      } else if(op == "|"){
         IR += "  " + tempVar + " = or " + left_ir + ", " + right_ir + "\n";
-      }
-      else if(op == "^"){
+      } else if(op == "^"){
         IR += "  " + tempVar + " = xor " + left_ir + ", " + right_ir + "\n";
-      }
+      } else assert(false);
       return tempVar;
     }
     return left_ir;
@@ -1907,7 +1893,6 @@ public:
             dim_sizes.push_back(size);
             total_size *= size;
         }
-        
         // 生成类型字符串
         std::string type_str = "[i32";
         for(const auto& size : dim_sizes) {
@@ -2281,7 +2266,6 @@ public:
                 std::string nmb = init_val->dumpIR(tempVarCounter);
             }
             else{
-                // 对于变量数组，生成多个store指令
                 std::string arr_ptr = var_nam;
                 for(int i=0; i < std::stoi(total_size); ++i){
                     std::string elem_ptr = "%" + std::to_string(tempVarCounter++);

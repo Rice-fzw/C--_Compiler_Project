@@ -140,12 +140,12 @@ int main() {
     init();
     print_map();
     while (1) {
-        int ch = getch();
-        if (ch == 'w') step += move(2);
-        else if (ch == 'a') step += move(0);
-        else if (ch == 's') step += move(3);
-        else if (ch == 'd') step += move(1);
-        else if (ch == 'q') break;
+        int ch = getint();
+        if (ch == 1) step += move(2);
+        else if (ch == 2) step += move(0);
+        else if (ch == 3) step += move(3);
+        else if (ch == 4) step += move(1);
+        else if (ch == 5) break;
         else continue;
         if (step > 0) generate();
         print_map();

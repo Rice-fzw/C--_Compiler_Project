@@ -6,7 +6,7 @@
   #include <string>
   #include <iostream>
   #include <vector>
-  #include "AST.h"
+  #include "IR.h"
   #include "lexer.h"
 }
 
@@ -15,7 +15,7 @@
 #include <string>
 #include <iostream>
 #include <vector>
-#include "AST.h"
+#include "IR.h"
 #include "lexer.h"
 
 // 声明 lexer 函数和错误处理函数

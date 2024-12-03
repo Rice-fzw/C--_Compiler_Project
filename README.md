@@ -1,6 +1,6 @@
-# SysY Compiler
+# C-- Compiler
 
-A compiler that translates SysY (a subset of C language) to RISC-V assembly via Koopa IR. This is a course project for PKU Compiler Principles.
+A compiler that translates C-- (a subset of C language) to RISC-V assembly via Koopa IR. This is a course project for PKU Compiler Principles.
 
 ## Introduction
 
@@ -14,7 +14,7 @@ docker pull maxxing/compiler-dev
 
 ### Basic Features
 
-1. Compiles SysY programs to Koopa IR
+1. Compiles C-- programs to Koopa IR
 2. Translates Koopa IR to RISC-V assembly
 3. Implements register allocation to optimize performance
 
@@ -31,7 +31,7 @@ docker pull maxxing/compiler-dev
 
 The compiler consists of 3 main modules:
 - `sysy.l` and `sysy.y`: Lexical and syntax analysis
-- `AST.h`: Compiles SysY source code to Koopa IR
+- `IR.h`: Compiles C-- source code to IR
 - `RISCV.h`: Compiles Koopa IR to RISC-V instructions
 
 ### Core Data Structures
@@ -51,7 +51,7 @@ All AST classes inherit from the base class `BaseAST`.
 
 Here's an example showing how the compiler works:
 
-Input SysY code:
+Input C-- code:
 ```c
 int a = 10;
 
