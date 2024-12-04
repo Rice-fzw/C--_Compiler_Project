@@ -113,29 +113,7 @@ void init() {
 }
 
 int main() {
-    putch(73);  // 'I'
-    putch(110); // 'n'
-    putch(112); // 'p'
-    putch(117); // 'u'
-    putch(116); // 't'
-    putch(32);  // ' ' (空格)
-    putch(97);  // 'a'
-    putch(32);  // ' ' (空格)
-    putch(114); // 'r'
-    putch(97);  // 'a'
-    putch(110); // 'n'
-    putch(100); // 'd'
-    putch(111); // 'o'
-    putch(109); // 'm'
-    putch(32);  // ' ' (空格)
-    putch(110); // 'n'
-    putch(117); // 'u'
-    putch(109); // 'm'
-    putch(98);  // 'b'
-    putch(101); // 'e'
-    putch(114); // 'r'
-    putch(58);  // ':'
-    putch(10);  // '\n'
+    puts("Input a random number:\n");
     seed = getint();
     init();
     print_map();
@@ -150,18 +128,7 @@ int main() {
         if (step > 0) generate();
         print_map();
         if (!try_move()) {
-            puts("Game over.");putch(10);
-        /*    putch(71);  // 'G'
-            putch(97);  // 'a'
-            putch(109); // 'm'
-            putch(101); // 'e'
-            putch(32);  // ' ' (空格)
-            putch(79);  // 'O'
-            putch(118); // 'v'
-            putch(101); // 'e'
-            putch(114); // 'r'
-            putch(46);  // '.'
-            putch(10);  // '\n'*/
+            puts("Game over.\n");
             break;
         }
     }
