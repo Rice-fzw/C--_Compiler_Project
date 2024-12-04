@@ -11,6 +11,7 @@
 #include "Symboltable.h"
 
 extern int fl;
+static int fl_void;
 static int if_num = 0;
 static int while_num = 0;
 static std::string IR = "";
@@ -158,6 +159,7 @@ public:
         }
         // 再处理所有函数定义
         for (const auto& func : funcdefs) {
+            fl_void = 0;
             func->dumpIR(tempVarCounter);
         //    std::cout<<glb_IR+IR;
         }
@@ -379,9 +381,7 @@ public:
     if (block_ir != "ret" && return_type != "void") {
       IR += "  ret 0\n";
     }
-    else if(return_type == "void"){
-      IR += "  ret\n";
-    }
+    else if (return_type == "void") IR += "  ret\n";
     IR += "}\n\n";
     fun_var.clear();
     scopeManager.exitScope();
@@ -590,9 +590,12 @@ public:
             case StmtType::Return: {
                 if (exp.hasValue()) {
                     // Generate the IR of the expression and obtain the result
-                    std::string exp_result = exp.getValue()->dumpIR(tempVarCounter);
-                    IR += "  ret " + exp_result + "\n";
-                } 
+                    if(exp.getValue()){
+                      std::string exp_result = exp.getValue()->dumpIR(tempVarCounter);
+                      IR += "  ret " + exp_result + "\n";
+                    }
+                }
+                else if(fl_void == 1) IR += "  ret\n";
                 return "ret";
             }
 
@@ -721,7 +724,9 @@ public:
 
         // then branches
         IR += then_label + ":\n";
+        fl_void = 1; 
         std::string not_if = then_stmt->dumpIR(tempVarCounter);
+        fl_void = 0;
         if (not_if != "ret" && not_if != "break" && not_if != "cont") {
           IR += "  jump " + end_label + "\n";
         }
@@ -729,10 +734,13 @@ public:
         // else branches(if exits)
         if (else_stmt.hasValue()) {
             IR += else_label + ":\n";
+            fl_void = 1;
             not_else = else_stmt.getValue()->dumpIR(tempVarCounter);
+            fl_void = 0;
             if (not_else != "ret" && not_else != "break" &&
                 not_else != "cont")
                 IR += "  jump " + end_label + "\n";
+            if(not_if == "ret") fl_void = 1;
             if((not_if == "ret" || not_if == "break" || not_if == "cont" ) && 
               (not_else == "ret" || not_else == "break" || not_else == "cont")) return "ret";
         }
@@ -788,7 +796,9 @@ public:
         
         // Body block: execute loop body
         IR += body_label + ":\n";
+        fl_void = 1;
         std::string not_ret = body->dumpIR(tempVarCounter);
+        fl_void = 0;
         if (not_ret != "ret" && not_ret != "break" && not_ret != "cont")
             IR += "  jump " + entry_label + "\n";
         

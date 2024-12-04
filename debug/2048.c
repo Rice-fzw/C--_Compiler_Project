@@ -14,23 +14,23 @@ const int LEN_OF_POW2[20] = {0, 1, 1, 1, 2, 2, 2, 3, 3, 3,
 const int CHR_SPACE = 32;
 const int CHR_ENTER = 10;
 
-int map[MAP_LEN * MAP_LEN];  // 使用一维数组替代二维数组
+int map[MAP_LEN * MAP_LEN]; 
 int score;
 int step;
 int max_num_len;
 int alive;
 int seed;
 
-// 获取一维数组中对应的位置
+// get index
 int get_index(int x, int y) {
     return x * MAP_LEN + y;
 }
 
 int rand() {
-    seed = (seed * 214013 + 2531011) % 0x40000000;
+    seed = (seed * 414047 + 4531063) % 0x40000000;
     if (seed < 0)
         seed = -seed;
-    return seed / 65536 % 0x8000;
+    return seed / 41489 % 0x8000;
 }
 
 
@@ -91,7 +91,7 @@ int move_one_line(int line_idx, int direction) {
     int val1, val2, val3, val4;
     int idx1, idx2, idx3, idx4;
     
-    // 获取索引和值
+    // get operations and value
     if (direction == UP || direction == DOWN) {
         idx1 = get_index(0, line_idx);
         idx2 = get_index(1, line_idx);
@@ -109,9 +109,8 @@ int move_one_line(int line_idx, int direction) {
     val3 = map[idx3];
     val4 = map[idx4];
     
-    // 合并逻辑
     if (direction == UP || direction == LEFT) {
-        // 移动非零数到前面
+        // movement
         if (val1 == 0) {
             val1 = val2;
             val2 = val3;
@@ -131,7 +130,7 @@ int move_one_line(int line_idx, int direction) {
             if (val3 != 0) moved = 1;
         }
         
-        // 合并相同数字
+        // integrate the same number
         if (val1 == val2 && val1 != 0) {
             val1 = val1 + 1;
             val2 = val3;
@@ -163,7 +162,7 @@ int move_one_line(int line_idx, int direction) {
             }
         }
     } else {
-        // 向下或向右的移动逻辑
+        // move right or down
         if (val4 == 0) {
             val4 = val3;
             val3 = val2;
@@ -183,7 +182,6 @@ int move_one_line(int line_idx, int direction) {
             if (val2 != 0) moved = 1;
         }
         
-        // 合并相同数字
         if (val4 == val3 && val4 != 0) {
             val4 = val4 + 1;
             val3 = val2;
@@ -215,43 +213,18 @@ int move_one_line(int line_idx, int direction) {
             }
         }
     }
-    
-    // 更新地图
+    // update the graph
     map[idx1] = val1;
     map[idx2] = val2;
     map[idx3] = val3;
     map[idx4] = val4;
-    
     return moved;
-}
-
-void move(int direction) {
-    int moved = 0;
-    int i = 0;
-    
-    while (i < MAP_LEN) {
-        if (move_one_line(i, direction)) {
-            moved = 1;
-        }
-        i = i + 1;
-    }
-    
-    if (!moved) {
-        puts("Invalid input. Try again.");
-        putch(CHR_ENTER);
-        return;
-    }
-    
-    step = step + 1;
-    generate();
-    print_map();
 }
 
 void generate() {
     int empty = 0;
     int chosen_pos = 0;
     int i = 0;
-    
     while (i < MAP_LEN * MAP_LEN) {
         if (map[i] == 0) {
             empty = empty + 1;
@@ -261,7 +234,6 @@ void generate() {
         }
         i = i + 1;
     }
-    
     int num;
     if (rand() % 2 < 1) {
         num = 1;
@@ -271,10 +243,35 @@ void generate() {
     map[chosen_pos] = num;
 }
 
+void move(int direction) {
+    int moved = 0;
+    int i = 0;
+    while (i < MAP_LEN) {
+        for(int j=0;j<4;++j){
+            if (move_one_line(j, direction)) {
+                moved = 1;
+            }
+        }
+        i = i + 1;
+    }
+    if (!moved) {
+        puts("Invalid input. Try again.");
+        putch(CHR_ENTER);
+        return;
+    }
+    
+    step = step + 1;
+    generate();
+    print_map();
+    return;
+}
+
+
+
 int can_move() {
     int i = 0;
     
-    // 检查是否有空格
+    // check whether there is a space
     while (i < MAP_LEN * MAP_LEN) {
         if (map[i] == 0) {
             return 1;
@@ -282,17 +279,17 @@ int can_move() {
         i = i + 1;
     }
     
-    // 检查相邻数字是否可以合并
+    // check whether two neighbors can integrate
     i = 0;
     while (i < MAP_LEN * MAP_LEN) {
         int x = i / MAP_LEN;
         int y = i % MAP_LEN;
         
-        // 检查右边
+        // check righthandsides
         if (y < MAP_LEN - 1 && map[i] == map[i + 1]) {
             return 1;
         }
-        // 检查下边
+        // check downwards
         if (x < MAP_LEN - 1 && map[i] == map[i + MAP_LEN]) {
             return 1;
         }
@@ -320,7 +317,9 @@ int main() {
         } else if (ch == 100) {
             move(RIGHT);
         } else if (ch == 104) {
-            puts("w, a, s, d: move\nh: print this help\nq: quit\np: print the map\n");
+            puts("w, a, s, d: move\n");
+            puts("h: print this help\n");
+            puts("q: quit\np: print the map\n");
         } else if (ch == 113 || ch == -1) {
             puts("Game over!\n");
             return 0;

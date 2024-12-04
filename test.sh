@@ -1,4 +1,4 @@
-./build/compiler -riscv debug/maze.c -o hello.S
+./build/compiler -riscv debug/2048.c -o hello.S
 clang hello.S -c -o hello.o -target riscv32-unknown-linux-elf -march=rv32im -mabi=ilp32
 ld.lld hello.o -L$CDE_LIBRARY_PATH/riscv32 -lsysy -o hello
 qemu-riscv32-static hello
