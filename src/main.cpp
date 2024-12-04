@@ -6,7 +6,6 @@
 #include <fstream>
 #include <sstream>
 #include "IR.h"
-#include "simplified_llvm.h"
 #include "RISCV.h"
 #include "lexer.h"
 
@@ -57,7 +56,7 @@ int main(int argc, const char *argv[]) {
       delete lexer;
       return 0;
     }
-    std :: cout << "IR is:"<<ir<<endl ;
+  //  std :: cout << "IR is:\n"<<ir<<endl ;
 
     koopa_program_t program;
     koopa_error_code_t ret = koopa_parse_from_string(ir, &program);
@@ -76,7 +75,7 @@ int main(int argc, const char *argv[]) {
     string riscv_str = ss_riscv.str();
     const char *riscv = riscv_str.data();
     cout.rdbuf(cout_buf_riscv);//restore the "cout"
-    std :: cout << riscv ;
+  //  std :: cout << riscv ;
     ofstream out_file(output);  // open the output file
     out_file << riscv_str;
     out_file.close();

@@ -39,7 +39,7 @@ using namespace std;
 
 //关键字Token
 %token INT RETURN CONST VOID
-%token IF ELSE WHILE BREAK CONTINUE
+%token IF ELSE WHILE FOR BREAK CONTINUE
 //比较运算符Token
 %token LE GE EQ NE
 //逻辑运算符Token
@@ -77,7 +77,7 @@ using namespace std;
 %type <ast_val> RelExp EqExp LAndExp LOrExp LVal
 %type <ast_val> BitOrExp BitXorExp BitAndExp ShiftExp
 %type <ast_val> OptionalExp
-
+%type <ast_val> ForInit
 %type <str_val> Mulop Addop
 %type <int_val> Number
 %type <ast_val> ConstDecl ConstDef ConstDefList ConstInitVal Decl ConstExp
@@ -366,6 +366,18 @@ Stmt
   }
   | CONTINUE ';' {
       $$ = StmtAST::makeContinue();
+  }
+  | FOR '(' ForInit OptionalExp ';' OptionalExp ')' Stmt {
+    $$ = new ForStmtAST($3, $4, $6, $8);
+  }
+  ;
+
+ForInit
+  : OptionalExp ';'{
+      $$ = $1;
+  }
+  | Decl {
+      $$ = $1;
   }
   ;
 

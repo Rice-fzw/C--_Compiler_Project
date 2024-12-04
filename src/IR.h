@@ -275,7 +275,10 @@ public:
         int lfl = 0;
         for (size_t i = 0; i < str_params.size(); ++i) {
             for (char c : str_params[i]){
-                if (c == '\\') lfl = 1; 
+                if (c == '\\'){
+                  lfl = 1; 
+                  continue;
+                }
                 if (c == 'n' && lfl == 1){
                   result += "  call @putch(10)\n";
                   lfl=0;continue;
@@ -589,10 +592,7 @@ public:
                     // Generate the IR of the expression and obtain the result
                     std::string exp_result = exp.getValue()->dumpIR(tempVarCounter);
                     IR += "  ret " + exp_result + "\n";
-                } else {
-                    // handle empty return
-                    IR += "  ret 0\n";
-                }
+                } 
                 return "ret";
             }
 
@@ -791,6 +791,104 @@ public:
         std::string not_ret = body->dumpIR(tempVarCounter);
         if (not_ret != "ret" && not_ret != "break" && not_ret != "cont")
             IR += "  jump " + entry_label + "\n";
+        
+        // End block
+        IR += end_label + ":\n";
+        while_stack.pop_back();
+        return "";
+    }
+};
+
+class ForStmtAST : public BaseAST {
+public:
+    Option<std::unique_ptr<BaseAST>> init;    // 初始化语句(可选)
+    Option<std::unique_ptr<BaseAST>> cond;    // 条件(可选) 
+    Option<std::unique_ptr<BaseAST>> update;  // 更新语句(可选)
+    std::unique_ptr<BaseAST> body;            // 循环体
+
+    // Constructor
+    ForStmtAST(BaseAST* init, BaseAST* cond, BaseAST* update, BaseAST* body)
+        : body(std::unique_ptr<BaseAST>(body)) {
+        if (init) this->init = Option(std::unique_ptr<BaseAST>(init));
+        if (cond) this->cond = Option(std::unique_ptr<BaseAST>(cond));
+        if (update) this->update = Option(std::unique_ptr<BaseAST>(update));
+    }
+
+    void Dump(int level = 0) const override {
+        indent(level);
+        std::cout << "ForStmt {\n";
+        
+        if (init.hasValue()) {
+            indent(level + 1);
+            std::cout << "init: {\n";
+            init.getValue()->Dump(level + 2);
+            indent(level + 1);
+            std::cout << "}\n";
+        }
+        
+        if (cond.hasValue()) {
+            indent(level + 1);
+            std::cout << "condition: {\n";
+            cond.getValue()->Dump(level + 2);
+            indent(level + 1);
+            std::cout << "}\n";
+        }
+        
+        if (update.hasValue()) {
+            indent(level + 1);
+            std::cout << "update: {\n";
+            update.getValue()->Dump(level + 2);
+            indent(level + 1);
+            std::cout << "}\n";
+        }
+        
+        indent(level + 1);
+        std::cout << "body: {\n";
+        body->Dump(level + 2);
+        indent(level + 1);
+        std::cout << "}\n";
+        
+        indent(level);
+        std::cout << "}\n";
+    }
+
+    std::string dumpIR(int& tempVarCounter) const override {
+        // Generate unique labels for the loop
+        std::string entry_label = "%for_entry_" + std::to_string(while_num);
+        std::string body_label = "%for_body_" + std::to_string(while_num);
+        std::string update_label = "%for_update_" + std::to_string(while_num);
+        std::string end_label = "%for_end_" + std::to_string(while_num++);
+        while_stack.push_back(while_num);
+
+        // Initialize if exists
+        if (init.hasValue()) {
+            init.getValue()->dumpIR(tempVarCounter);
+        }
+        
+        // Jump to entry block
+        IR += "  jump " + entry_label + "\n";
+        
+        // Entry block: evaluate condition
+        IR += entry_label + ":\n";
+        std::string cond_result = "1"; // If no condition, loop forever
+        if (cond.hasValue()) {
+            cond_result = cond.getValue()->dumpIR(tempVarCounter);
+        }
+        IR += "  br " + cond_result + ", " + body_label + ", " + end_label + "\n";
+        
+        // Body block
+        IR += body_label + ":\n";
+        std::string not_ret = body->dumpIR(tempVarCounter);
+        if (not_ret != "ret" && not_ret != "break" && not_ret != "cont") {
+            IR += "  jump " + update_label + "\n";
+        }
+        
+        // Update block
+        IR += update_label + ":\n";
+        if (update.hasValue()) {
+            update.getValue()->dumpIR(tempVarCounter);
+        }
+        IR += "  jump " + entry_label + "\n";
         
         // End block
         IR += end_label + ":\n";

@@ -162,6 +162,10 @@ int Mylexer::IsIdentifierOrKeyword(){
     if (identifier == "void") {
         return VOID;
     }
+
+    if (identifier == "for") {
+        return FOR;
+    }
     
     
     // send it to yylval in bison
