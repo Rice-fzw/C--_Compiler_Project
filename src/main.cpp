@@ -6,7 +6,6 @@
 #include <fstream>
 #include <sstream>
 #include "IR.h"
-#include "simplified_llvm.h"
 #include "RISCV.h"
 #include "lexer.h"
 
