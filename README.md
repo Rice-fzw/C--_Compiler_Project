@@ -21,6 +21,7 @@ The difference from C language is that it does not have header files, does not s
 - ###### csc3002-dev-environment.tar includes the official Linux image of Docker, and downloads tools such as bison, llvm, cmakes, etc., and pulls them from Docker
 
 ### Setup Development Environment
+
 ##### The first method to enter Docker (Recommended!)
 - For Windows
 ```bash
@@ -39,6 +40,7 @@ docker build -t csc3002-dev-image .
 docker run -it --rm --platform linux/amd64 -v Local-file-directory:/workspace -w /workspace csc3002-dev-image bash
 ```
 ### How to use our Compiler
+
 ##### First, run the following instruction to synthesize the written code into a compiler. (If there is already a build folder, ignore it.)
 ```bash
 sh build.sh
@@ -64,14 +66,14 @@ sh test.sh
 
 ## Compiler Design
 
-### Main Components
+#### Main Components
 
 The compiler consists of 3 main modules:
 - `lexer.cpp`, `lexer.h` and `c--.y`: Lexical and syntax analysis
 - `IR.h`: Compiles C-- source code to IR
 - `RISCV.h`: Compiles IR to RISC-V instructions
 
-### Core Data Structures
+#### Core Data Structures
 
 The most important data structure is the AST (Abstract Syntax Tree). A `CompUnitAST` instance represents the root of the tree, containing all function definitions and global variable definitions. Some key classes include:
 
