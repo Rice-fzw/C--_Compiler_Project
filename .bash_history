@@ -425,3 +425,8 @@ sh test.sh
 rm -rf build
 sh build.sh
 exit
+gcc main.cpp -o main
+ls
+exit
+sh test.sh
+exit

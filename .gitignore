@@ -1,3 +1,4 @@
 *.DS_Store
 /build
 /.vscode
+/csc3002-dev-environment.tar
