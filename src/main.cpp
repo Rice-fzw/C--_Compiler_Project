@@ -24,6 +24,7 @@ int main(int argc, const char *argv[]) {
 
   unique_ptr<BaseAST> ast;
   auto ret = yyparse(ast);
+  if (ret) printf("Your code has syntax errors\n");
   assert(!ret);
 
   int tempVarCounter = 0;

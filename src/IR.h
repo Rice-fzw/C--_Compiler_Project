@@ -612,6 +612,9 @@ public:
                     // 对于数组访问，store_location已经是正确的地址
                     // 对于普通变量，store_location是变量名或临时变量
                     IR += "  store " + exp_result + ", " + bel[store_location] + "\n";
+                    std::string temp_var = "%" + std::to_string(tempVarCounter++);
+                    IR += "  " + temp_var + " = load " + bel[store_location] + "\n";
+                    return temp_var;
                 }
                 return "";
             }
@@ -1262,7 +1265,7 @@ class AddExpAST : public BaseAST {
 //      std::cout << "!!!!\n"<<tempVar<<"\n";
       return tempVar;
     }
-//    std::cout<<"asdf\n";
+  //  std::cout<<"asdf\n";
     return left_ir;
   }
 
