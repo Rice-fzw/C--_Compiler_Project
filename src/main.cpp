@@ -51,9 +51,10 @@ int main(int argc, const char *argv[]) {
     const char *ir = ir_str.data();
     cout.rdbuf(cout_buf);
     if (fl == 1){
-      ofstream out_file(output);  // open the output file
-      out_file << ir_str;         // write the error message to the file
-      out_file.close();
+    //  ofstream out_file(output);  // open the output file
+    //  out_file << ir_str;         // write the error message to the file
+    //  out_file.close();
+      std::cout << ir_str;
       delete lexer;
       return 0;
     }

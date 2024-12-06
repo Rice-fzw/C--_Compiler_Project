@@ -23,6 +23,7 @@ static std::vector<std::string> fun_var;
 static std::vector<int> while_stack;
 static std::vector<std::string> list_nam; 
 static std::vector<int> list_length; 
+static std::map<std::string, bool> fun_nam;
 static Scope scopeManager;
 static std::map<std::string, std::string> bel;
 
@@ -358,6 +359,12 @@ public:
   std::string dumpIR(int& tempVarCounter) const override {
     mySymboltable newtbl;
     scopeManager.insertScope(newtbl);
+    fun_nam[ident] = 1;
+    auto u = scopeManager.lookupSymbol("k");
+    if (u.has_value()) {
+        fl = 1;
+        std::cout << "Error! The function name " << ident << " and variable name are duplicated\n";
+    }
     IR += "fun @" + ident + "(";
     if (params.hasValue()) {
         IR += params.getValue()->dumpIR(tempVarCounter);
@@ -1704,6 +1711,14 @@ public:
 
     std::string dumpIR(int& tempVarCounter) const override {
         int init_val_ir = init_val->Calc();
+        if (fun_nam[ident]){
+            fl=1;
+            std::cout << "Error! The const name " << ident << " and function name are duplicated\n";
+        }
+        if (ident == "main"){
+            fl=1;
+            std::cout << "The const name cannot be 'main'\n";
+        }
         mySymboltable* topscope = scopeManager.top();
         topscope -> insertSymbol(ident, "const", "1", std::to_string(init_val_ir));
         //chk[ident] = init_val_ir;
@@ -1713,6 +1728,14 @@ public:
     virtual int Calc() const override{
     //  std::cout<<"herer";
       int init_val_ir = init_val->Calc();
+      if (fun_nam[ident]){
+            fl=1;
+            std::cout << "Error! The const name " << ident << " and function name are duplicated\n";
+      }
+      if (ident == "main"){
+            fl=1;
+            std::cout << "The const name cannot be 'main'\n";
+        }
       mySymboltable* topscope = scopeManager.top();
       topscope -> insertSymbol(ident, "const", "1", std::to_string(init_val_ir));
       return init_val_ir;
@@ -1800,6 +1823,14 @@ public:
         std::string var_ptr = "@" + ident;
         std::string var_nam = var_ptr + "_" + std::to_string(var_num[var_ptr]++);
         IR += "  " + var_nam + " = alloc i32\n";
+        if (fun_nam[ident]){
+            fl=1;
+            std::cout << "Error! The variable name " << ident << " and function name are duplicated\n";
+        }
+        if (ident == "main"){
+            fl=1;
+            std::cout << "Variable name cannot be 'main'\n";
+        }
         mySymboltable* topscope = scopeManager.top();
         topscope -> insertSymbol(ident, "int", "1", var_nam);
         if (has_init) {
@@ -1814,6 +1845,14 @@ public:
         std::string var_ptr = "@" + ident;
         std::string var_nam = var_ptr + "_" + std::to_string(var_num[var_ptr]++);
         glb_IR += "global  " + var_nam + " = alloc i32, ";
+        if (fun_nam[ident]){
+            fl=1;
+            std::cout << "Error! The variable name " << ident << " and function name are duplicated\n";
+        }
+        if (ident == "main"){
+            fl=1;
+            std::cout << "Variable name cannot be 'main'\n";
+        }
         mySymboltable* topscope = scopeManager.top();
         topscope -> insertSymbol(ident, "int", "1", var_nam);
         if (has_init) {

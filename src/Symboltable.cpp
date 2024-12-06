@@ -12,7 +12,7 @@ int fl = 0;
 
     void mySymboltable::insertSymbol(const string& name, const string& type, const string& value,const string& koopalR){
         if(!checkSymbolOK(name)){
-            cout<<"error! "<<name<<" has been declared"<<endl;
+            cout<<"Error! "<<name<<" has been declared"<<endl;
             fl = 1;
             return;
         }
@@ -23,7 +23,7 @@ int fl = 0;
 
     void mySymboltable::insertSymbol(const string& name, const string& type, const string& value, const string& koopalR, const std::vector<int>& ele) {
         if (!checkSymbolOK(name)) {
-            cout << "error! " << name << " has been declared" << endl;
+            cout << "Error! " << name << " has been declared" << endl;
             fl = 1;
             return;
         }

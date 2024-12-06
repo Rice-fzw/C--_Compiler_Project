@@ -1,5 +1,13 @@
+int x = 3;
+
+int f(int then) {
+    return x + then;
+}
+
 int main() {
-  // 忽略我的存在
-  int a = 10;
-  const int a = 20;
+    int f = 2, x = 5;
+    if (x > 3) f = 3;
+    const int f = 6;
+    const int main[2] = {1, 2};
+    return f(main[1] + x + f);
 }

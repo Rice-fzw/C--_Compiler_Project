@@ -16,6 +16,7 @@ int main() {
   a -= 1;
   a *= 1;
   a /= 1;
-  a %= 1;
+  putint(a);puts("\n");
+  a %= 5;
   return a;
 }

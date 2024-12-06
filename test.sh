@@ -1,5 +1,15 @@
-./build/compiler -riscv debug/test8_3.c -o hello.S
-clang hello.S -c -o hello.o -target riscv32-unknown-linux-elf -march=rv32im -mabi=ilp32
-ld.lld hello.o -L/workspace/opt/lib/riscv32 -lsysy -o hello
-qemu-riscv32-static hello
-echo $?
+#!/bin/bash
+
+# The address of the program you want to compile
+filename=$(basename "./debug/2048.c" .c)
+
+./build/compiler -riscv debug/${filename}.c -o ${filename}.S
+if [ -f "./${filename}.S" ]; then
+    clang ${filename}.S -c -o ${filename}.o -target riscv32-unknown-linux-elf -march=rv32im -mabi=ilp32
+    ld.lld ${filename}.o -L/workspace/opt/lib/riscv32 -lsysy -o ${filename}
+    qemu-riscv32-static ${filename}
+    echo $?
+fi
+rm -rf ${filename}.S
+rm -rf ${filename}.o
+rm -rf ${filename}
