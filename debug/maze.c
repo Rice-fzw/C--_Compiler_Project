@@ -1,142 +1,157 @@
-// Maze configurations
+// A maze generator.
+// Author: MaxXing.
+
+// Maze configurations.
 const int WIDTH = 100, HEIGHT = 100;
-const int VISITED = 0;
-const int NO_LEFT_WALL = 1;
-const int NO_TOP_WALL = 2;
-const int LEFT = 0, RIGHT = 1, TOP = 2, DOWN = 3;
 
-int map[30000];   // 一维数组模拟地图，最大可支持100x100迷宫
-int image[30000]; // 一维数组模拟图像
-int seed;         // 随机数种子
+// Directions.
+const int LEFT = 0;
+const int RIGHT = 1;
+const int TOP = 2;
+const int DOWN = 3;
 
-// 伪随机数生成器
+// Map properties represented as three 1D arrays.
+int visited[HEIGHT * WIDTH];      // To mark if a cell is visited.
+int no_left_wall[HEIGHT * WIDTH]; // To indicate if there's no left wall.
+int no_top_wall[HEIGHT * WIDTH];  // To indicate if there's no top wall.
+
+// Image for rendering the maze.
+int image[(HEIGHT * 2 + 1) * (WIDTH * 2 + 1)]; // 1D array for rendering.
+
+// Random seed.
+int seed;
+
+// Random number generator.
 int rand() {
-    seed = (seed * 214013 + 2531011) % 0x40000000;
-    if (seed < 0) seed = -seed;
-    return seed / 65536 % 0x8000;
+  seed = (seed * 214013 + 2531011) % 0x40000000;
+  if (seed < 0) seed = -seed;
+  return seed / 65536 % 0x8000;
 }
 
-// 获取邻居的有效性
+// Gets neighbors of the given cell by direction.
+// Returns 0 if the neighbor is out of the map.
 int get_neighbor(int x, int y, int dir) {
-    if (dir == LEFT) {
-        if (x == 0) return 0;
-        return 1;
-    } else if (dir == RIGHT) {
-        if (x == WIDTH - 1) return 0;
-        return 1;
-    } else if (dir == TOP) {
-        if (y == 0) return 0;
-        return 1;
-    } else if (dir == DOWN) {
-        if (y == HEIGHT - 1) return 0;
-        return 1;
-    }
-    return 0;
+  if (dir == LEFT) {
+    if (x == 0) return 0;
+    return 1;
+  } else if (dir == RIGHT) {
+    if (x == WIDTH - 1) return 0;
+    return 1;
+  } else if (dir == TOP) {
+    if (y == 0) return 0;
+    return 1;
+  } else if (dir == DOWN) {
+    if (y == HEIGHT - 1) return 0;
+    return 1;
+  }
+  return 0;
 }
 
-// 移除墙壁
+// Removes the wall at the given direction of the cell.
 void remove_wall(int x, int y, int dir) {
-    if (dir == LEFT) {
-        map[y * WIDTH + x] = 1;  // 左墙去掉
-    } else if (dir == RIGHT) {
-        map[y * WIDTH + (x + 1)] = 1;  // 右墙去掉
-    } else if (dir == TOP) {
-        map[(y - 1) * WIDTH + x] = 1;  // 上墙去掉
-    } else if (dir == DOWN) {
-        map[(y + 1) * WIDTH + x] = 1;  // 下墙去掉
-    }
+  int index = y * WIDTH + x;
+  if (dir == LEFT) {
+    no_left_wall[index] = 1;
+  } else if (dir == RIGHT) {
+    no_left_wall[(y * WIDTH + x + 1)] = 1; // Right cell's left wall.
+  } else if (dir == TOP) {
+    no_top_wall[index] = 1;
+  } else if (dir == DOWN) {
+    no_top_wall[((y + 1) * WIDTH + x)] = 1; // Bottom cell's top wall.
+  }
 }
 
-// 深度优先生成迷宫
+// Generates a maze using Depth-First Search.
 void gen_maze(int x, int y) {
-    map[y * WIDTH + x] = VISITED;
-    int dirs[4] = {LEFT, RIGHT, TOP, DOWN};
-    
-    // 随机打乱方向
-    int i = 0;
-    while (i < 4) {
-        int r = rand() % 4;
-        int temp = dirs[i];
-        dirs[i] = dirs[r];
-        dirs[r] = temp;
-        i = i + 1;
-    }
+  int index = y * WIDTH + x;
+  visited[index] = 1;
 
-    int j = 0;
-    while (j < 4) {
-        int new_x = x, new_y = y;
-        if (get_neighbor(new_x, new_y, dirs[j]) && map[new_y * WIDTH + new_x] != VISITED) {
-            remove_wall(x, y, dirs[j]);
-            if (dirs[j] == LEFT) new_x = new_x - 1;
-            else if (dirs[j] == RIGHT) new_x = new_x + 1;
-            else if (dirs[j] == TOP) new_y = new_y - 1;
-            else if (dirs[j] == DOWN) new_y = new_y + 1;
-            
-            gen_maze(new_x, new_y);
-        }
-        j = j + 1;
+  // Shuffle directions.
+  int dirs[4] = {LEFT, RIGHT, TOP, DOWN};
+  for (int i = 0; i < 4; ++i) {
+    int r = rand() % 4;
+    int temp = dirs[i];
+    dirs[i] = dirs[r];
+    dirs[r] = temp;
+  }
+
+  // Explore neighbors.
+  for (int i = 0; i < 4; ++i) {
+    int xx = x, yy = y;
+    if (get_neighbor(xx, yy, dirs[i]) && !visited[yy * WIDTH + xx]) {
+      remove_wall(x, y, dirs[i]);
+      gen_maze(xx, yy);
     }
+  }
 }
 
-// 渲染迷宫
+// Draws the maze into the image array.
 void render() {
-    int y = 0;
-    while (y < HEIGHT) {
-        int x = 0;
-        while (x < WIDTH) {
-            if (map[y * WIDTH + x] == 1) {
-                image[(y * 2 + 1) * (WIDTH * 2 + 1) + (x * 2)] = 1;  // 标记墙壁
-                image[(y * 2) * (WIDTH * 2 + 1) + (x * 2 + 1)] = 1;
-            }
-            image[(y * 2) * (WIDTH * 2 + 1) + (x * 2)] = 1;  // 填充迷宫边界
-            x = x + 1;
-        }
-        y = y + 1;
-    }
+  // Initialize image array to black (walls everywhere).
+  for (int i = 0; i < (HEIGHT * 2 + 1) * (WIDTH * 2 + 1); ++i) {
+    image[i] = 0;
+  }
 
-    y = 0;
-    while (y < HEIGHT * 2 + 1) {
-        image[y * (WIDTH * 2 + 1) + WIDTH * 2] = 1;  // 渲染右边界
-        y = y + 1;
+  // Draw cells and walls based on the maze properties.
+  for (int y = 0; y < HEIGHT; ++y) {
+    for (int x = 0; x < WIDTH; ++x) {
+      int index = y * WIDTH + x;
+
+      // Set the center of the cell to white (path).
+      image[(y * 2 + 1) * (WIDTH * 2 + 1) + (x * 2 + 1)] = 1;
+
+      // Set the left wall if it exists.
+      if (!no_left_wall[index]) {
+        image[(y * 2 + 1) * (WIDTH * 2 + 1) + x * 2] = 1;
+      }
+
+      // Set the top wall if it exists.
+      if (!no_top_wall[index]) {
+        image[(y * 2) * (WIDTH * 2 + 1) + (x * 2 + 1)] = 1;
+      }
     }
-    
-    int x = 0;
-    while (x < WIDTH * 2 + 1) {
-        image[(HEIGHT * 2) * (WIDTH * 2 + 1) + x] = 1;  // 渲染下边界
-        x = x + 1;
-    }
+  }
+
+  // Draw the bottom and right borders of the maze.
+  for (int y = 0; y < HEIGHT * 2 + 1; ++y) {
+    image[y * (WIDTH * 2 + 1) + (WIDTH * 2)] = 1; // Right border.
+  }
+  for (int x = 0; x < WIDTH * 2 + 1; ++x) {
+    image[(HEIGHT * 2) * (WIDTH * 2 + 1) + x] = 1; // Bottom border.
+  }
 }
 
 int main() {
-    seed = 12345678;  // 初始化随机数种子
-    int zoom = 2;     // 缩放因子
+  seed = getint(); // Set the random seed.
+  int zoom = getint(); // Zoom factor for rendering.
+  starttime();
 
-    // 生成迷宫
-    gen_maze(rand() % WIDTH, rand() % HEIGHT);
-    render();
+  // Generate the maze.
+  gen_maze(rand() % WIDTH, rand() % HEIGHT);
+  render();
 
-    // 输出图片信息
-    putch(80); putch(51); putch(10);  // 输出初始文本（可以根据实际需要修改）
-    putint((WIDTH * 2 + 1) * zoom); putch(32);
-    putint((HEIGHT * 2 + 1) * zoom); putch(10);
-    putint(255); putch(10);  // 输出最大颜色值255
+  stoptime();
+  starttime();
 
-    // 输出每个像素的颜色值
-    int y = 0;
-    while (y < (HEIGHT * 2 + 1) * zoom) {
-        int x = 0;
-        while (x < (WIDTH * 2 + 1) * zoom) {
-            int xx = x / zoom, yy = y / zoom;
-            int r = image[yy * (WIDTH * 2 + 1) + xx] * 255 * x / ((WIDTH * 2 + 1) * zoom);
-            int g = image[yy * (WIDTH * 2 + 1) + xx] * 255 * y / ((HEIGHT * 2 + 1) * zoom);
-            int b = image[yy * (WIDTH * 2 + 1) + xx] * 255;
-            
-            putint(r); putch(32); putint(g); putch(32); putint(b); putch(32);
-            x = x + 1;
-        }
-        putch(10);  // 换行
-        y = y + 1;
+  // Output the PPM image header.
+  putch(80); putch(51); putch(10); // P3
+  putint((WIDTH * 2 + 1) * zoom); putch(32);
+  putint((HEIGHT * 2 + 1) * zoom); putch(10);
+  putint(255); putch(10);
+
+  // Output the maze image data.
+  for (int y = 0; y < (HEIGHT * 2 + 1) * zoom; ++y) {
+    for (int y = 0; x < (WIDTH * 2 + 1) * zoom; ++x) {
+      int xx = x / zoom, yy = y / zoom;
+      int cell_value = image[yy * (WIDTH * 2 + 1) + xx];
+      int r = cell_value * 255 * x / ((WIDTH * 2 + 1) * zoom);
+      int g = cell_value * 255 * y / ((HEIGHT * 2 + 1) * zoom);
+      int b = cell_value * 255;
+      putint(r); putch(32); putint(g); putch(32); putint(b); putch(32);
     }
+    putch(10);
+  }
 
-    return 0;
+  stoptime();
+  return 0;
 }

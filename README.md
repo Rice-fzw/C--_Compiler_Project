@@ -7,6 +7,7 @@ A compiler that translates C-- to RISC-V assembly through intermexdiate output I
 ##### The description of C-- (C minus-minus)： a simplified intermediate c language, which supports the following features:
 
 - Binary operations (e.g., addition, subtraction,  multiplication, division, logical operations)
+- Arithmetic expression
 - Variables
 - Functions
 - Control flow statements like continue, break, for, and while

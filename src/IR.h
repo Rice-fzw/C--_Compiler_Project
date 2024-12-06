@@ -26,6 +26,8 @@ static std::vector<int> list_length;
 static std::map<std::string, bool> fun_nam;
 static Scope scopeManager;
 static std::map<std::string, std::string> bel;
+static std::map<std::string, int> erary;
+static std::map<std::string, int> ervar;
 
 
 // Auxiliary function: Print indentation
@@ -445,6 +447,11 @@ public:
     std::string dumpIR(int& tempVarCounter) const override {
         // obatain the value of variable
         auto varpit = scopeManager.lookupSymbol(ident);
+        if (varpit == std::nullopt){
+          if(!ervar[ident]) std::cout << "Error: variable " << ident << " is not defined.\n";
+          fl = 1; ervar[ident] = 1;
+          return "%0";
+        }
         std::string var_type = varpit.value() -> type;
         std::string var_val = varpit.value() -> value;
         std::string var_nam = varpit.value() -> KoopalR;
@@ -470,6 +477,7 @@ public:
     virtual int Calc() const override{
 //        std::cout<<"here";
       auto varpit = scopeManager.lookupSymbol(ident);
+      if (varpit == std::nullopt) return 0;
       std::string var_nam = varpit.value() -> KoopalR;
       return std::stoi(var_nam);
     }
@@ -879,12 +887,13 @@ public:
         std::string update_label = "%for_update_" + std::to_string(while_num);
         std::string end_label = "%for_end_" + std::to_string(while_num++);
         while_stack.push_back(while_num);
-
+        std::string last_result;
+        mySymboltable newtbl;
+        scopeManager.insertScope(newtbl);
         // Initialize if exists
         if (init.hasValue()) {
             init.getValue()->dumpIR(tempVarCounter);
         }
-        
         // Jump to entry block
         IR += "  jump " + entry_label + "\n";
         
@@ -913,6 +922,7 @@ public:
         // End block
         IR += end_label + ":\n";
         while_stack.pop_back();
+        scopeManager.exitScope();
         return "";
     }
 };
@@ -2244,9 +2254,13 @@ public:
         }*/
         
         // 生成数组访问的 IR 代码
-
-        std::string type =array_sym.value() -> type;
-        std::string current_ptr = array_sym.value() -> KoopalR;
+          if (array_sym == std::nullopt){
+            if(!erary[ident]) std::cout << "Error: array " << ident << " is not defined.\n";
+            fl = 1; erary[ident] = 1;
+            return "%0";
+          }
+          std::string type =array_sym.value() -> type;
+          std::string current_ptr = array_sym.value() -> KoopalR;
       //  std::string type =array_sym.value() -> type;
       //  IR += "12312313" + current_ptr + "\n";
     //  std::cout<<glb_IR+IR;

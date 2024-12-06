@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # The address of the program you want to compile
-filename=$(basename "./debug/2048.c" .c)
+filename=$(basename "./debug/maze.c" .c)
 
 ./build/compiler -riscv debug/${filename}.c -o ${filename}.S
 if [ -f "./${filename}.S" ]; then
@@ -12,4 +12,4 @@ if [ -f "./${filename}.S" ]; then
 fi
 rm -rf ${filename}.S
 rm -rf ${filename}.o
-rm -rf ${filename}
+#rm -rf ${filename}
