@@ -35,7 +35,7 @@ class Mylexer{
         char current_char = ' '; 
         std::ifstream infile;
       
-        const char DualTable[10] = { '=','>','<','&','|','!','+','-','*','/'};   
+        const char DualTable[11] = { '=','>','<','&','|','!','+','-','*','/', '%'};   
 
 };
 

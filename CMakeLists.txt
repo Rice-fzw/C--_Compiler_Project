@@ -36,10 +36,9 @@ include_directories(src)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${INC_DIR})
 
-# all of C/C++ source files
-file(GLOB_RECURSE C_SOURCES "src/*.c")
+# all of C++ source files
 file(GLOB_RECURSE CXX_SOURCES "src/*.cpp")
-set(SOURCES ${C_SOURCES} ${CXX_SOURCES} ${CC_SOURCES}
+set(SOURCES ${CXX_SOURCES}
             ${BISON_Parser_OUTPUT_SOURCE})
 
 # 可执行文件

@@ -51,7 +51,7 @@ using namespace std;
 // += -= *= /=
 %token AE ME UE DE
 //优先级
-%right '=' AE ME UE DE // = += -= *= /=
+%right '=' AE ME UE DE OE // = += -= *= /= %=
 %left LOR           // ||
 %left LAND          // &&
 %left '|'
@@ -422,6 +422,11 @@ AssignExp
     auto lval_copy = new LValAST(static_cast<LValAST*>($1)->ident);
     auto div_exp = new MulExpAST("/", std::unique_ptr<BaseAST>(lval_copy), std::unique_ptr<BaseAST>($3));
     $$ = StmtAST::makeAssign($1, div_exp);
+  }
+  | LVal OE Exp {
+  auto lval_copy = new LValAST(static_cast<LValAST*>($1)->ident);
+  auto mod_exp = new MulExpAST("%", std::unique_ptr<BaseAST>(lval_copy), std::unique_ptr<BaseAST>($3));
+  $$ = StmtAST::makeAssign($1, mod_exp);
   }
   ;
 

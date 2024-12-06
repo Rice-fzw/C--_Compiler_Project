@@ -9,7 +9,6 @@ int main() {
   puts("hhhhasf");
   putint(++a);
   putint(f(a));
-  puts("as\ndf\n" + "asdf\n");
   putint(a++);
   a--;
   +(++a);
@@ -17,5 +16,6 @@ int main() {
   a -= 1;
   a *= 1;
   a /= 1;
+  a %= 1;
   return a;
 }

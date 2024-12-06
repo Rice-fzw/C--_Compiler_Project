@@ -175,7 +175,7 @@ int Mylexer::IsIdentifierOrKeyword(){
 
 //check whether is a dualsign
 int Mylexer::IsdualSign(){
-    for (int j = 0; j < 10; j++){
+    for (int j = 0; j < 11; j++){
         if (current_char == DualTable[j]){
             return DualTable[j];
         }
@@ -183,12 +183,12 @@ int Mylexer::IsdualSign(){
     return -1;
 }
 
-//check whether is valid dual
+//check whether is a dualsign
 int Mylexer::IsDual(){
     
 
     int DUAL[7][2]={{0,EQ},{1,SAR},{2,SHL},{3,LAND},{4,LOR},{6,AA},{7,MM}};
-    int LEGENE[7][2]={{5,NE},{1,GE},{2,LE},{8,UE},{9,DE},{6,AE},{7,ME}};
+    int LEGENE[8][2]={{5,NE},{1,GE},{2,LE},{8,UE},{9,DE},{6,AE},{7,ME},{10,OE}};
 
     for (int i = 0; i < 7; i++){
         if(IsdualSign()==DualTable[DUAL[i][0]]){
@@ -206,7 +206,7 @@ int Mylexer::IsDual(){
         }    
     }
  
-    for (int i = 0; i < 7; i++){
+    for (int i = 0; i < 8; i++){
         if(IsdualSign()==DualTable[LEGENE[i][0]]){
             nextcharacter();
             if (IsdualSign()=='='){
