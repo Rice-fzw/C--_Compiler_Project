@@ -300,8 +300,11 @@ int can_move() {
 }
 
 int main() {
-    puts("Input a random number: \n");
+    puts("Input a random number as the seed: \n");
     seed = getint();
+    puts("w, a, s, d: move\n");
+    puts("h: print this help\n");
+    puts("q: quit\np: print the map\n");
     init();
     generate();
     print_map();

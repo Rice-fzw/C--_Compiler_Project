@@ -14,11 +14,11 @@
     struct Symbol {
         std::string type;  
         std::string value; 
-        std::string KoopalR; 
+        std::string address; 
         std::vector<int> ele;
-        Symbol(std::string t,  std::string v,std::string k) : type(t), value(v) ,KoopalR(k){}
+        Symbol(std::string t,  std::string v,std::string k) : type(t), value(v) ,address(k){}
         Symbol(std::string t, std::string v, std::string k, const std::vector<int>& eleVector) 
-        : type(t), value(v), KoopalR(k), ele(eleVector) {}
+        : type(t), value(v), address(k), ele(eleVector) {}
     };
 
     //representing one scope
@@ -32,8 +32,8 @@
         }; 
 
         // insert a type into the current scope
-        void insertSymbol(const std::string& name, const std::string& type, const std::string& value,const std::string& koopalR);
-        void insertSymbol(const std::string& name, const std::string& type, const std::string& value, const std::string& koopalR, const std::vector<int>& ele);
+        void insertSymbol(const std::string& name, const std::string& type, const std::string& value,const std::string& address);
+        void insertSymbol(const std::string& name, const std::string& type, const std::string& value, const std::string& address, const std::vector<int>& ele);
         // check whether there is duplicate value, can be used to check whether a identifier has been initialized before insert 
         bool checkSymbolOK(const std::string name);
     

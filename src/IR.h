@@ -24,11 +24,10 @@ static std::vector<int> while_stack;
 static std::vector<std::string> list_nam; 
 static std::vector<int> list_length; 
 static std::map<std::string, bool> fun_nam;
-static Scope scopeManager;
 static std::map<std::string, std::string> bel;
 static std::map<std::string, int> erary;
 static std::map<std::string, int> ervar;
-
+static Scope scopeManager;
 
 // Auxiliary function: Print indentation
 inline void indent(int level) {
@@ -365,7 +364,7 @@ public:
     auto u = scopeManager.lookupSymbol("k");
     if (u.has_value()) {
         fl = 1;
-        std::cout << "Error! The function name " << ident << " and variable name are duplicated\n";
+        std::cout << "Error! The function name " + ident + " and variable name are duplicated\n";
     }
     IR += "fun @" + ident + "(";
     if (params.hasValue()) {
@@ -454,7 +453,7 @@ public:
         }
         std::string var_type = varpit.value() -> type;
         std::string var_val = varpit.value() -> value;
-        std::string var_nam = varpit.value() -> KoopalR;
+        std::string var_nam = varpit.value() -> address;
         if (var_type == "int"){
 //          IR += var_val;
           if(var_val == "2"){
@@ -478,7 +477,7 @@ public:
 //        std::cout<<"here";
       auto varpit = scopeManager.lookupSymbol(ident);
       if (varpit == std::nullopt) return 0;
-      std::string var_nam = varpit.value() -> KoopalR;
+      std::string var_nam = varpit.value() -> address;
       return std::stoi(var_nam);
     }
 };
@@ -620,7 +619,7 @@ public:
                     // std::string var_ptr = "@" + lval.getValue()->ident; 
 
                     // auto varpit = scopeManager.lookupSymbol(lval.getValue()->ident);
-                    // std::string var_nam= varpit.value() -> KoopalR;
+                    // std::string var_nam= varpit.value() -> address;
                     // IR += "  store " + exp_result + ", " + var_nam + "\n";
                     std::string store_location = lval.getValue()->dumpIR(tempVarCounter);
                 
@@ -1002,7 +1001,7 @@ class PrimaryExpAST : public BaseAST {
       // auto varpit = scopeManager.lookupSymbol(LVal);
       // std::string var_type= varpit.value() -> type;
       // std::string var_val = varpit.value() -> value;
-      // std::string var_nam= varpit.value() -> KoopalR;
+      // std::string var_nam= varpit.value() -> address;
       // if (var_type == "int"){
       //   if(var_val == "2"){
       //       std::string temp_var = "%" + std::to_string(tempVarCounter++);
@@ -1031,7 +1030,7 @@ class PrimaryExpAST : public BaseAST {
     } else if (type == PrimaryExpType::LVal) {
       // auto varpit = scopeManager.lookbupSymbol(LVal);
       // std::string var_type= varpit.value() -> type;
-      // std::string var_nam= varpit.value() -> KoopalR;
+      // std::string var_nam= varpit.value() -> address;
       // return std::stoi(var_nam);
       // 直接使用lval的Calc()方法
         return lval->Calc();
@@ -1125,7 +1124,7 @@ class UnaryExpAST : public BaseAST {
                       //return "";
                   //}
                   
-                  IR += "  store " + new_val + ", " + bel[expr_ir]/*var_sym.value()->KoopalR*/ + "\n";
+                  IR += "  store " + new_val + ", " + bel[expr_ir]/*var_sym.value()->address*/ + "\n";
                   return orig_val;  // 返回原始值
               }
               // 处理前缀自增自减操作
@@ -1162,7 +1161,7 @@ class UnaryExpAST : public BaseAST {
                       fl = 1;
                       return "";
                   }
-                  IR += "  store " + new_val + ", " + bel[expr_ir]/*var_sym.value()->KoopalR*/ + "\n";
+                  IR += "  store " + new_val + ", " + bel[expr_ir]/*var_sym.value()->address*/ + "\n";
                   return new_val;  // 返回新值
               }
               // 处理原有的一元操作符
@@ -2260,7 +2259,7 @@ public:
             return "%0";
           }
           std::string type =array_sym.value() -> type;
-          std::string current_ptr = array_sym.value() -> KoopalR;
+          std::string current_ptr = array_sym.value() -> address;
       //  std::string type =array_sym.value() -> type;
       //  IR += "12312313" + current_ptr + "\n";
     //  std::cout<<glb_IR+IR;

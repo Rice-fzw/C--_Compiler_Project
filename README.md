@@ -20,6 +20,7 @@ The difference from C language is that it does not have header files, does not s
 ### Development environment: Docker
 
 - ###### csc3002-dev-environment.tar includes the official Linux image of Docker, and downloads tools such as bison, llvm, cmakes, etc., and pulls them from Docker
+- You can visit [the official website of Docker](https://docs.docker.com/get-started/get-docker/) to install Docker. After installation, you may need to restart your system.
 
 ### Setup Development Environment
 

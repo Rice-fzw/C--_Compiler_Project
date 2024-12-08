@@ -44,4 +44,4 @@ set(SOURCES ${CXX_SOURCES}
 # 可执行文件
 add_executable(compiler ${SOURCES})
 set_target_properties(compiler PROPERTIES CXX_STANDARD 17)
-target_link_libraries(compiler koopa pthread dl)
+target_link_libraries(compiler spl_llvm pthread dl)

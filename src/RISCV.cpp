@@ -360,8 +360,11 @@ std::string Visit(const koopa_raw_binary_t &bin){
         case KOOPA_RBO_SHL://left shift operation (<<)
             std::cout << "  " << "sll " << reg + ", " << rhs_reg + ", " << lhs_reg << std::endl;
             break;
-        case KOOPA_RBO_SHR://right shift operation (>>)
-            std::cout << "  " << "srl " << reg + ", " << rhs_reg + ", " << lhs_reg << std::endl;
+        case KOOPA_RBO_SHR://logical right shift operation (>>>)
+            std::cout << "  " << "srl " << reg + ", " << lhs_reg + ", " << rhs_reg << std::endl;
+            break;
+        case KOOPA_RBO_SAR://arithmetic right shift operation (>>)
+            std::cout << "  " << "sra " << reg + ", " << lhs_reg + ", " << rhs_reg << std::endl;
             break;
         default:
             std::cout << "Unhandled binary: " << bin.op << std::endl;//other types
@@ -736,4 +739,3 @@ std::string New_reg(){
 bool ValidStack(int sta){
     return sta>=-2048 && sta<2048;
 }
-

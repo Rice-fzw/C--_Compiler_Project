@@ -34,7 +34,7 @@ void cauculate(int y, int m, int d){
 
 int main(){
 	int y, m, d;
-	puts("Please enter the year, month and day which separated by a space between each:\n");
+	puts("Please enter the year, month and day which separated by a line break between each:\n");
 	y = getint();
 	m = getint();
 	d = getint();
@@ -58,7 +58,7 @@ int main(){
 		puts("Friday\n");
 	}else if (ans == 6) {
 		puts("Saturday\n");
-	}else if (ans == 7) {
+	}else if (ans == 0) {
 		puts("Sunday\n");
 	}
 	return 0;

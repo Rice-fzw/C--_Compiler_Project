@@ -10,24 +10,24 @@ using namespace std;
 
 int fl = 0;
 
-    void mySymboltable::insertSymbol(const string& name, const string& type, const string& value,const string& koopalR){
+    void mySymboltable::insertSymbol(const string& name, const string& type, const string& value,const string& address){
         if(!checkSymbolOK(name)){
             cout<<"Error! "<<name<<" has been declared"<<endl;
             fl = 1;
             return;
         }
-       // shared_ptr<Symbol> ptr = make_shared<Symbol>(type,value,koopalR);
-        Symboltable[name] = make_shared<Symbol>(type, value, koopalR); 
+       // shared_ptr<Symbol> ptr = make_shared<Symbol>(type,value,address);
+        Symboltable[name] = make_shared<Symbol>(type, value, address); 
         
     }
 
-    void mySymboltable::insertSymbol(const string& name, const string& type, const string& value, const string& koopalR, const std::vector<int>& ele) {
+    void mySymboltable::insertSymbol(const string& name, const string& type, const string& value, const string& address, const std::vector<int>& ele) {
         if (!checkSymbolOK(name)) {
             cout << "Error! " << name << " has been declared" << endl;
             fl = 1;
             return;
         }
-        Symboltable[name] = make_shared<Symbol>(type, value, koopalR, ele);
+        Symboltable[name] = make_shared<Symbol>(type, value, address, ele);
     }
 
     bool mySymboltable::checkSymbolOK(string name){
@@ -56,7 +56,7 @@ int fl = 0;
         for (const auto& [name, symbol] : Symboltable) {
             cout << "  Name: " << name << ", Type: " << symbol->type
                 << ", Value: " << symbol->value
-                << ", koopa: " << symbol->KoopalR
+                << ", koopa: " << symbol->address
                 << endl;
         }
     }

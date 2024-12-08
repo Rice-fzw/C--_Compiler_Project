@@ -197,6 +197,9 @@ ConstExpList
       $1->push_back(std::unique_ptr<BaseAST>($3));
       $$ = $1;
   }
+  | ConstExpList ',' {
+      $$ = $1;
+  }
   ;
 
 VarDecl
@@ -262,6 +265,9 @@ InitValList
       auto list = static_cast<ArrayInitValAST*>($1);
       list->elements.push_back(std::unique_ptr<BaseAST>($3));
       $$ = list;
+  }
+  | InitValList ',' {
+      $$ = $1;
   }
   ;
 
