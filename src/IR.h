@@ -93,8 +93,8 @@ public:
 
 class CompUnitAST : public BaseAST {
 public:
-    std::vector<std::unique_ptr<BaseAST>> decls;    // 存储所有的声明
-    std::vector<std::unique_ptr<BaseAST>> funcdefs; // 存储所有的函数定义
+    std::vector<std::unique_ptr<BaseAST>> decls;    // Store all declaraions
+    std::vector<std::unique_ptr<BaseAST>> funcdefs; // Store all function definitions
 
     CompUnitAST() = default;
     
@@ -110,7 +110,7 @@ public:
         indent(level);
         std::cout << "CompUnit {\n";
         
-        // 只在有声明时才打印声明部分
+        // Only print declarations when it is not empty
         if (!decls.empty()) {
             indent(level + 1);
             std::cout << "Declarations:\n";
@@ -119,7 +119,7 @@ public:
             }
         }
         
-        // 只在有函数定义时才打印函数部分
+        // Only print function defs when it is not empty
         if (!funcdefs.empty()) {
             indent(level + 1);
             std::cout << "Functions:\n";
@@ -150,7 +150,7 @@ public:
         fun_type["starttime"] = "void";
         fun_type["stoptime"] = "void";
 
-//        先处理所有声明
+//        Deal with declarations first
         if(!decls.empty()){
             mySymboltable newtbl;
             scopeManager.insertScope(newtbl);
@@ -159,7 +159,7 @@ public:
           //  std::cout<<"qwq";
             decl->Calc();
         }
-        // 再处理所有函数定义
+        // Deal with function defs
         for (const auto& func : funcdefs) {
             fl_void = 0;
             func->dumpIR(tempVarCounter);
@@ -170,11 +170,11 @@ public:
     }
 };
 
-// 函数参数列表AST节点
+// AST Node for parameter list
 class FuncFParamAST : public BaseAST {
 public:
-    std::string btype;  // 参数类型
-    std::string ident;  // 参数名称
+    std::string btype;  // parameter type
+    std::string ident;  // parameter name
 
     FuncFParamAST(std::string type, std::string name) 
         : btype(type), ident(name) {}
@@ -200,12 +200,11 @@ public:
     }
 };
 
-// 完整的函数参数列表: (int x, int y)
+// Complete Function parameter list: (int x, int y)
 class FuncFParamListAST : public BaseAST {
 public:
-    std::vector<std::unique_ptr<FuncFParamAST>> params;  // 参数列表
+    std::vector<std::unique_ptr<FuncFParamAST>> params;  // Parameter list
 
-    // 构造函数
     FuncFParamListAST(std::vector<std::unique_ptr<FuncFParamAST>> params_list)
         : params(std::move(params_list)) {}
 
@@ -233,13 +232,12 @@ public:
     }
 };
 
-// 函数调用参数列表: f(1 + 2, 3 * 4)
+// Function call parameter list: f(1 + 2, 3 * 4)
 class FuncRParamsAST : public BaseAST {
 public:
-    std::vector<std::unique_ptr<BaseAST>> params;  // 实参列表
-    std::vector<std::string> str_params;  // 字符串参数列表
+    std::vector<std::unique_ptr<BaseAST>> params;  // Parameter list
+    std::vector<std::string> str_params;  // String parameter list
 
-    // 构造函数
     FuncRParamsAST(std::vector<std::unique_ptr<BaseAST>> params_list)
         : params(std::move(params_list)) {}
         
@@ -623,8 +621,8 @@ public:
                     // IR += "  store " + exp_result + ", " + var_nam + "\n";
                     std::string store_location = lval.getValue()->dumpIR(tempVarCounter);
                 
-                    // 对于数组访问，store_location已经是正确的地址
-                    // 对于普通变量，store_location是变量名或临时变量
+                    // For array access, store_location is already the correct address
+                    // For regular variables, store_location is the variable name or temporary variable
                     IR += "  store " + exp_result + ", " + bel[store_location] + "\n";
                     std::string temp_var = "%" + std::to_string(tempVarCounter++);
                     IR += "  " + temp_var + " = load " + bel[store_location] + "\n";
@@ -772,7 +770,6 @@ public:
     std::unique_ptr<BaseAST> cond;     // condition
     std::unique_ptr<BaseAST> body;     // loop body
 
-    // Constructor
     WhileStmtAST(BaseAST* condition, BaseAST* loop_body) 
         : cond(std::unique_ptr<BaseAST>(condition)), 
           body(std::unique_ptr<BaseAST>(loop_body)) {}
@@ -828,12 +825,11 @@ public:
 
 class ForStmtAST : public BaseAST {
 public:
-    Option<std::unique_ptr<BaseAST>> init;    // 初始化语句(可选)
-    Option<std::unique_ptr<BaseAST>> cond;    // 条件(可选) 
-    Option<std::unique_ptr<BaseAST>> update;  // 更新语句(可选)
-    std::unique_ptr<BaseAST> body;            // 循环体
+    Option<std::unique_ptr<BaseAST>> init;    // Initialization (Optional)
+    Option<std::unique_ptr<BaseAST>> cond;    // Condition (Optional)
+    Option<std::unique_ptr<BaseAST>> update;  // Update (Optional)
+    std::unique_ptr<BaseAST> body;            // Body
 
-    // Constructor
     ForStmtAST(BaseAST* init, BaseAST* cond, BaseAST* update, BaseAST* body)
         : body(std::unique_ptr<BaseAST>(body)) {
         if (init) this->init = Option(std::unique_ptr<BaseAST>(init));
@@ -1016,7 +1012,7 @@ class PrimaryExpAST : public BaseAST {
       //     return temp_var;
       // }
       // return var_nam;
-        // 直接使用lval的dumpIR，而不是通过符号表查找
+        // Directly use dumpIR() method of lval, rather than look up in symbol table
         return lval->dumpIR(tempVarCounter);
     }
     return "";
@@ -1032,7 +1028,7 @@ class PrimaryExpAST : public BaseAST {
       // std::string var_type= varpit.value() -> type;
       // std::string var_nam= varpit.value() -> address;
       // return std::stoi(var_nam);
-      // 直接使用lval的Calc()方法
+      // Directly use Calc() method of lval
         return lval->Calc();
     }
     assert(false);
@@ -1091,16 +1087,16 @@ class UnaryExpAST : public BaseAST {
   std::string dumpIR(int& tempVarCounter) const override {
       switch (type) {
           case UnaryExpType::Unary_op: {
-              // 处理后置自增自减操作
+              // Deal with post++ / post-- first
               if (op == "post++" || op == "post--") {
-                  // 先获取变量当前值
+                  // get current value of variable
                   std::string expr_ir = exp->dumpIR(tempVarCounter);
                   
-                  // 保存原值用于返回
+                  // store original value for return
                   std::string orig_val = "%" + std::to_string(tempVarCounter++);
-                  IR += "  " + orig_val + " = add " + expr_ir + ", 0\n";  // 复制原值
+                  IR += "  " + orig_val + " = add " + expr_ir + ", 0\n";  // copy original value
                   
-                  // 计算新值
+                  // Compute new value
                   std::string new_val = "%" + std::to_string(tempVarCounter++);
                   if (op == "post++") {
                       IR += "  " + new_val + " = add " + expr_ir + ", 1\n";
@@ -1114,25 +1110,25 @@ class UnaryExpAST : public BaseAST {
                       return "";
                   }
                 //  std::cout<<"!!!ident: "<<ident<<std::endl;
-                  // 查找变量并存储新值
+                  // look up variable and store new value
               //    std::cout<<"here\n"<<expr_ir<<"\n"<<ident;
             //      auto var_sym = scopeManager.lookupSymbol(ident);
                 //  auto var_sym = scopeManager.lookupSymbol(exp->dumpIR(tempVarCounter));
                 //  if (!var_sym.has_value()) {
-                  //    std::cerr << "Error: 未定义的变量" << std::endl;
+                  //    std::cerr << "Error: Undefined variable" << std::endl;
                     //  fl = 1;
                       //return "";
                   //}
                   
                   IR += "  store " + new_val + ", " + bel[expr_ir]/*var_sym.value()->address*/ + "\n";
-                  return orig_val;  // 返回原始值
+                  return orig_val;  // retuen original value
               }
-              // 处理前缀自增自减操作
+              // Deal with pre++ /pre --
               else if (op == "++" || op == "--") {
-                  // 先获取变量当前值
+                  // get the current value of variable
                   std::string expr_ir = exp->dumpIR(tempVarCounter);
                   
-                  // 计算新值
+                  // Compute new value
                   std::string new_val = "%" + std::to_string(tempVarCounter++);
                   if (op == "++") {
                       IR += "  " + new_val + " = add " + expr_ir + ", 1\n";
@@ -1140,18 +1136,18 @@ class UnaryExpAST : public BaseAST {
                       IR += "  " + new_val + " = sub " + expr_ir + ", 1\n";
                   }
                   
-                  // 确保exp是一个LVal
+                  // ensure exp is a lval
                 /*  auto var = dynamic_cast<const LValAST*>(exp.get());
                   if (!var) {
-                      // std::cerr << "Error: 自增自减操作只能用于变量" << std::endl;
+                      // std::cerr << "Error: ++/-- can only be used upon variables" << std::endl;
                       fl = 1;
                       return "";
                   }
                   
-                  // 查找变量并存储新值
+                  // look up variable and store new value
                   auto var_sym = scopeManager.lookupSymbol(var->ident);
                   if (!var_sym.has_value()) {
-                      std::cerr << "Error: 未定义的变量" << std::endl;
+                      std::cerr << "Error: Undefined variables" << std::endl;
                       fl = 1;
                       return "";
                   }
@@ -1162,9 +1158,9 @@ class UnaryExpAST : public BaseAST {
                       return "";
                   }
                   IR += "  store " + new_val + ", " + bel[expr_ir]/*var_sym.value()->address*/ + "\n";
-                  return new_val;  // 返回新值
+                  return new_val;  // return new value
               }
-              // 处理原有的一元操作符
+              // deal with other unary operators
               else {
                   std::string expr_ir = exp->dumpIR(tempVarCounter);
                   if (op == "+") return expr_ir;
@@ -1218,7 +1214,7 @@ class UnaryExpAST : public BaseAST {
           }
 
           case UnaryExpType::Function:
-              // 编译时不能计算函数调用
+              // Function calls cannot be evaluated at compile time
               assert(false);
               return 0;
 
@@ -2044,7 +2040,6 @@ class BitExpAST : public BaseAST {
   }
 };
 
-// 数组类型节点
 class ArrayTypeAST : public BaseAST {
 public:
     std::vector<std::unique_ptr<BaseAST>> dims;  // expressions for each dimension
@@ -2070,9 +2065,9 @@ public:
     }
 
     std::string dumpIR(int& tempVarCounter) const override {
-        // 检查是否在全局作用域
+        // Check if in global scope
         
-        // 计算总大小和各维度大小
+        // Compute total size and sizes for different dimensions
         std::vector<int> dim_sizes;
         int total_size = 1;
         for(const auto& dim : dims) {
@@ -2080,7 +2075,7 @@ public:
             dim_sizes.push_back(size);
             total_size *= size;
         }
-        // 生成类型字符串
+        // Generate type string
         std::string type_str = "[i32";
         for(const auto& size : dim_sizes) {
             type_str += ", " + std::to_string(size);
@@ -2091,7 +2086,6 @@ public:
     }
 };
 
-// 数组初始化节点
 class ArrayInitValAST : public BaseAST {
 public:
     std::vector<std::unique_ptr<BaseAST>> elements;
@@ -2117,10 +2111,10 @@ public:
     std::string dumpIR(int& tempVarCounter) const override {
       //  std::cout<<"hqweqe\n";
         std::string ident = list_nam.back();
-        std::string arr_ptr = ident + "_" + std::to_string(var_num[list_nam.back()]-1);  // 获取数组基地址
+        std::string arr_ptr = ident + "_" + std::to_string(var_num[list_nam.back()]-1);  // Get array base address
       /*  if(is_const) {
             std::vector <int> ele;
-            // 常量数组初始化必须使用常量表达式
+            // Constant array initialization must use constant expressions
             if(elements.empty()) {
                 for(int i=0; i<list_length.back(); ++i) {
                     ele.push_back(0);
@@ -2134,7 +2128,7 @@ public:
             for(size_t i = 0; i < elements.size(); ++i) {
           //      if(i > 0) init_str += ", ";
                 int u = elements[i]->Calc();
-                // 对常量数组，直接计算初始值
+                // For constant array, directly compute its value
           //      init_str += std::to_string(u);
                 ele.push_back(u);
             }
@@ -2150,9 +2144,9 @@ public:
             topscope->insertSymbol(ident, "array", "2", arr_ptr, ele);
             return std::to_string(elements.size());
         } else {*/
-            // 对于变量数组，生成多个store指令
+          // For variable arrays, generate multiple store instructions
           //  int length = stoi(elements[0]->dumpIR(tempVarCounter));
-          //  std::string arr_ptr = list_nam.back() + "_" + std::to_string(var_num[list_nam.back()]-1);;  // 获取数组基地址
+          //  std::string arr_ptr = list_nam.back() + "_" + std::to_string(var_num[list_nam.back()]-1);;  // Get array base address
             for(size_t i = 0; i < elements.size(); ++i) {
                 auto array_sym = scopeManager.lookupSymbol(ident);
                 std::string elem_ptr = "%" + std::to_string(tempVarCounter++);
@@ -2177,7 +2171,7 @@ public:
     virtual int Calc() const override {
         if(false) {
             std::string ident = list_nam.back();
-            std::string arr_ptr = ident + "_" + std::to_string(var_num[list_nam.back()]-1);  // 获取数组基地址
+            std::string arr_ptr = ident + "_" + std::to_string(var_num[list_nam.back()]-1);  // Get array base address
             std::vector <int> ele;
             for(size_t i = 0; i < elements.size(); ++i) {
                 int u = elements[i]->Calc();
@@ -2190,7 +2184,7 @@ public:
             topscope->insertSymbol(ident, "const_array", "2", arr_ptr, ele);
             return elements.size();
         } else {
-            // 对于变量数组，生成多个store指令
+            // For variable arrays, generate multiple store instructions
             IR += "{";
             for(size_t i = 0; i < elements.size(); ++i) {
                 int u = elements[i]->Calc();
@@ -2209,7 +2203,6 @@ public:
 
 };
 
-// 数组访问节点
 class ArrayAccessAST : public BaseAST {
 public:
     std::string ident;
@@ -2241,18 +2234,18 @@ public:
         auto array_sym = scopeManager.lookupSymbol(u);
       /*  if(!array_sym.has_value() || !array_sym.value()->is_array) {
             std::cerr << "Error: Invalid array access" << std::endl;
-            fl = 1;  // 设置错误标志
+            fl = 1;  // Set wrong flag
             return "";
         }
         
-        // 检查维度数量是否匹配
+        // Check if the number of dimensions matches
         if(indices.size() != array_sym.value()->array_dims.size()) {
             std::cerr << "Error: Array dimension mismatch" << std::endl;
             fl = 1;
             return "";
         }*/
         
-        // 生成数组访问的 IR 代码
+          // Generate IR code for array access
           if (array_sym == std::nullopt){
             if(!erary[ident]) std::cout << "Error: array " << ident << " is not defined.\n";
             fl = 1; erary[ident] = 1;
@@ -2276,7 +2269,7 @@ public:
                 current_ptr = elem_ptr;
             }
             
-            // 加载数组元素值
+            // Load array element value
             std::string result = "%" + std::to_string(tempVarCounter++);
             IR += "  " + result + " = load " + current_ptr + "\n";
             bel[result] = current_ptr;
@@ -2294,7 +2287,7 @@ public:
     }
 };
 
-// 数组声明的公共基类
+// Common base class for array declarations
 class ArrayDefBaseAST : public BaseAST {
 public:
     std::string ident;                          // name
@@ -2318,10 +2311,10 @@ public:
     }
 };
 
-// 常量数组声明AST节点
+// AST Node for Constant Array Def
 class ConstArrayDefAST : public ArrayDefBaseAST {
 public:
-    std::unique_ptr<BaseAST> init_val;  // 初始化值
+    std::unique_ptr<BaseAST> init_val;  // Initial value
 
     ConstArrayDefAST(std::string name, 
                     std::vector<std::unique_ptr<BaseAST>> dimensions,
@@ -2330,7 +2323,7 @@ public:
           init_val(std::move(init)) {}
 
     void Dump(int level = 0) const override {
-        ArrayDefBaseAST::Dump(level);  // 调用基类的Dump
+        ArrayDefBaseAST::Dump(level);  // Call base dump()
         indent(level + 1);
         std::cout << "init_val: {\n";
         if(init_val) {
@@ -2345,11 +2338,11 @@ public:
     std::string dumpIR(int& tempVarCounter) const override {
         std::string total_size = "1";
         for(const auto& dim : dims) {
-            int dim_size = dim->Calc();  // 使用Calc()获取常量维度大小
+            int dim_size = dim->Calc();  // Use Calc() to get constant dimension size
             total_size = std::to_string(std::stoi(total_size) * dim_size);
         }
         
-        // 生成数组分配和初始化的IR
+        // Generate IR for array allocation and initialization
         std::string var_ptr = "@" + ident;
         std::string var_nam = var_ptr + "_" + std::to_string(var_num[var_ptr]++);
         IR += " " + var_nam + " = alloc [i32, " + total_size + "]\n";
@@ -2362,8 +2355,8 @@ public:
             list_length.push_back(std::stoi(total_size));
             init_val->dumpIR(tempVarCounter);
           //  IR += nmb;
-            // TODO: 处理初始化
-            // 需要遍历init_val并生成对应的store指令
+            // TODO: Deal with Initialization
+            // Need to traverse init_val and generate corresponding store instructions
      //   }
       //  else{
       //    IR += "zeroinit\n";
@@ -2374,11 +2367,11 @@ public:
     virtual int Calc() const override{
         std::string total_size = "1";
         for(const auto& dim : dims) {
-            int dim_size = dim->Calc();  // 使用Calc()获取常量维度大小
+            int dim_size = dim->Calc();  // Use Calc() to get constant dimension size
             total_size = std::to_string(std::stoi(total_size) * dim_size);
         }
         
-        // 生成数组分配和初始化的IR
+        // Generate IR for array allocation and initialization
         std::string var_ptr = "@" + ident;
         std::string var_nam = var_ptr + "_" + std::to_string(var_num[var_ptr]++);
         IR += "global " + var_nam + " = alloc [i32, " + total_size + "], ";
@@ -2391,8 +2384,8 @@ public:
             list_length.push_back(std::stoi(total_size));
             init_val->Calc();
           //  IR += nmb;
-            // TODO: 处理初始化
-            // 需要遍历init_val并生成对应的store指令
+            // TODO: Deal with Initialization
+            // Need to traverse init_val and generate corresponding store instructions
      //   }
      //   else{
       //    IR += "zeroinit\n";
@@ -2401,11 +2394,11 @@ public:
     }
 };
 
-// 变量数组声明AST节点
+// AST Node for Array Def
 class VarArrayDefAST : public ArrayDefBaseAST {
 public:
-    std::unique_ptr<BaseAST> init_val;  // 可选的初始化值
-    bool has_init;                      // 是否有初始化
+    std::unique_ptr<BaseAST> init_val;  // Optional initial value
+    bool has_init;                      // Whether have initial value
 
     VarArrayDefAST(std::string name, 
                   std::vector<std::unique_ptr<BaseAST>> dimensions)
@@ -2420,7 +2413,7 @@ public:
           has_init(true) {}
 
     void Dump(int level = 0) const override {
-        ArrayDefBaseAST::Dump(level);  // 调用基类的Dump
+        ArrayDefBaseAST::Dump(level);  // Call base Dump()
         if(has_init) {
             indent(level + 1);
             std::cout << "init_val: {\n";
@@ -2433,15 +2426,15 @@ public:
     }
 
     std::string dumpIR(int& tempVarCounter) const override {
-        // 计算数组总大小
+        // Compute total size of array
         std::string total_size = "1";
         for(const auto& dim : dims) {
-            int dim_size = dim->Calc();  // 使用Calc()获取常量维度大小
+            int dim_size = dim->Calc();  // Use Calc() to get constant dimension size
 //            std::cout << dim_size <<" endl\n";
             total_size = std::to_string(std::stoi(total_size) * dim_size);
         }
         
-        // 生成数组分配和初始化的IR
+        // Generate IR for array allocation and initialization
         std::string var_ptr = "@" + ident;
         std::string var_nam = var_ptr + "_" + std::to_string(var_num[var_ptr]++);
         IR += "  " + var_nam + " = alloc [i32, " + total_size + "]\n";
@@ -2472,21 +2465,21 @@ public:
                 IR += "  store 0, " + elem_ptr + "\n";
             }*/
           //  IR += nmb;
-            // TODO: 处理初始化
-            // 需要遍历init_val并生成对应的store指令
+            // TODO: Deal with initialization
+            // Need to traverse init_val and generate corresponding store instructions
         }
         return var_ptr;
     }
 
     virtual int Calc() const override{
-        // 计算数组总大小
+        // Compute total size of array
         std::string total_size = "1";
         for(const auto& dim : dims) {
-            int dim_size = dim->Calc();  // 使用Calc()获取常量维度大小
+            int dim_size = dim->Calc();  // Use Calc() to get constant dimension size
             total_size = std::to_string(std::stoi(total_size) * dim_size);
         }
         
-        // 生成数组分配和初始化的IR
+        // Generate IR for array allocation and initialization
         std::string var_ptr = "@" + ident;
         std::string var_nam = var_ptr + "_" + std::to_string(var_num[var_ptr]++);
         IR += "global " + var_nam + " = alloc [i32, " + total_size + "], ";
@@ -2499,8 +2492,8 @@ public:
             list_length.push_back(std::stoi(total_size));
             init_val->Calc();
           //  IR += nmb;
-            // TODO: 处理初始化
-            // 需要遍历init_val并生成对应的store指令
+            // TODO: Deal with initialization
+            // Need to traverse init_val and generate corresponding store instructions
         }
         else{
           IR += "zeroinit\n";

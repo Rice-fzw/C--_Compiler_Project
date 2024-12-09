@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # The address of the program you want to compile
-filename=$(basename "./debug/sokoban.c" .c)
+filename=$(basename "./debug/guess.c" .c)
 
 ./build/compiler -riscv debug/${filename}.c -o ${filename}.S
 if [ -f "./${filename}.S" ]; then

@@ -18,7 +18,7 @@
 #include "IR.h"
 #include "lexer.h"
 
-// 声明 lexer 函数和错误处理函数
+//Declear lexer function and error function
 int yylex();
 void yyerror(std::unique_ptr<BaseAST> &ast, const char *s);
 extern YYSTYPE yylval;
@@ -37,20 +37,20 @@ using namespace std;
   std::vector<std::unique_ptr<BaseAST>> *vec_val;
 }
 
-//关键字Token
+//Keyword Token
 %token INT RETURN CONST VOID
 %token IF ELSE WHILE FOR BREAK CONTINUE
-//比较运算符Token
+//Comparison Operator Tokens
 %token LE GE EQ NE
-//逻辑运算符Token
+//Logical Operator Tokens
 %token LAND LOR
-//位运算符Token
+//Bitwise Operator Tokens
 %token SHL SAR
-//自增/自减运算符Token
+//Increment/Decrement Operator Tokens
 %token AA MM
 // += -= *= /=
 %token AE ME UE DE
-//优先级
+//Precedence Rules
 %right '=' AE ME UE DE OE // = += -= *= /= %=
 %left LOR           // ||
 %left LAND          // &&
@@ -63,10 +63,10 @@ using namespace std;
 %left '+' '-'       // plus minus 
 %left '*' '/' '%'
 %right '!'
-%nonassoc PRE_AA PRE_MM    // 前缀++/--，无结合性
-%nonassoc POST_AA POST_MM   // 后缀++/--，无结合性
+%nonassoc PRE_AA PRE_MM    // prefix ++/--, no associativity
+%nonassoc POST_AA POST_MM   // postfix ++/--, no associativity
 
-%start CompUnit  // 明确指定起始规则
+%start CompUnit  // specify the start rule
 
 %token <str_val> IDENT
 %token <int_val> INT_CONST
@@ -94,7 +94,7 @@ using namespace std;
 CompUnit
   : CompUnitItem {
       auto comp_unit = new CompUnitAST();
-      // 根据类型添加到对应vector中
+      // Add to corresponding vector by type
       if (auto* decl = dynamic_cast<ConstDeclAST*>($1)) {
           comp_unit->addDecl($1);
       } else if (auto* decl = dynamic_cast<VarDeclAST*>($1)) {
@@ -106,7 +106,7 @@ CompUnit
   }
   | CompUnit CompUnitItem {
       auto comp_unit = static_cast<CompUnitAST*>(ast.get());
-      // 根据类型添加到对应vector中
+      // Add to corresponding vector by type
       if (auto* decl = dynamic_cast<ConstDeclAST*>($2)) {
           comp_unit->addDecl($2);
       } else if (auto* decl = dynamic_cast<VarDeclAST*>($2)) {
@@ -275,14 +275,42 @@ FuncDef
   : BType IDENT '(' ')' Block {
     $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST(*($1))), *$2, std::unique_ptr<BaseAST>($5));
   }
+  | BType IDENT '(' ')' Block ';' {
+  $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST(*($1))), *$2, std::unique_ptr<BaseAST>($5));
+  }
   | BType IDENT '(' FuncFParams ')' Block {
+    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST(*($1))), *$2, std::unique_ptr<FuncFParamListAST>(static_cast<FuncFParamListAST*>($4)), std::unique_ptr<BaseAST>($6));
+  }
+  | BType IDENT '(' FuncFParams ')' Block ';' {
     $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST(*($1))), *$2, std::unique_ptr<FuncFParamListAST>(static_cast<FuncFParamListAST*>($4)), std::unique_ptr<BaseAST>($6));
   }
   | VOID IDENT '(' ')' Block {
     $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST("void")), *$2, std::unique_ptr<BaseAST>($5));
   }
+  | VOID IDENT '(' ')' Block ';' {
+    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST("void")), *$2, std::unique_ptr<BaseAST>($5));
+  }
   | VOID IDENT '(' FuncFParams ')' Block {
     $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST("void")), *$2, std::unique_ptr<FuncFParamListAST>(static_cast<FuncFParamListAST*>($4)), std::unique_ptr<BaseAST>($6));
+  }
+  | VOID IDENT '(' FuncFParams ')' Block ';' {
+    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST("void")), *$2, std::unique_ptr<FuncFParamListAST>(static_cast<FuncFParamListAST*>($4)), std::unique_ptr<BaseAST>($6));
+  }
+  | BType IDENT '(' ')' ';' {
+    auto empty_block = new BlockAST();
+    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST(*($1))), *$2, std::unique_ptr<BaseAST>(empty_block));
+  }
+  | BType IDENT '(' FuncFParams ')' ';' {
+    auto empty_block = new BlockAST();
+    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST(*($1))), *$2, std::unique_ptr<FuncFParamListAST>(static_cast<FuncFParamListAST*>($4)), std::unique_ptr<BaseAST>(empty_block));
+  }
+  | VOID IDENT '(' ')' ';' {
+    auto empty_block = new BlockAST();
+    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST("void")), *$2, std::unique_ptr<BaseAST>(empty_block));
+  }
+  | VOID IDENT '(' FuncFParams ')' ';' {
+    auto empty_block = new BlockAST();
+    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST("void")), *$2, std::unique_ptr<FuncFParamListAST>(static_cast<FuncFParamListAST*>($4)), std::unique_ptr<BaseAST>(empty_block));
   }
   ;
 
@@ -441,7 +469,7 @@ LVal
     $$ = new LValAST(*$1);
     delete $1;
   }
-  | IDENT '[' Exp ']' { /* 一维数组访问 */
+  | IDENT '[' Exp ']' { /* Visiting one demension array */
     std::vector<std::unique_ptr<BaseAST>> indices;
     indices.push_back(std::unique_ptr<BaseAST>($3));
     $$ = new ArrayAccessAST(*$1, std::move(indices));
@@ -471,10 +499,10 @@ UnaryExp
   : PrimaryExp {
     $$ = $1;
   }
-  | '+' UnaryExp %prec '!' {  // 使用 ! 的优先级
+  | '+' UnaryExp %prec '!' {  // precedence same as !
     $$ = new UnaryExpAST("+", std::unique_ptr<BaseAST>($2));
   }
-  | '-' UnaryExp %prec '!' {  // 使用 ! 的优先级
+  | '-' UnaryExp %prec '!' {  // precedence same as !
     $$ = new UnaryExpAST("-", std::unique_ptr<BaseAST>($2));
   }
   | '!' UnaryExp {
@@ -502,7 +530,7 @@ UnaryExp
 
 FuncRParams
   : Exp {
-      // 单个参数
+      // single parameter
       auto params = new FuncRParamsAST(std::vector<std::unique_ptr<BaseAST>>());
       params->params.push_back(std::unique_ptr<BaseAST>($1));
       $$ = params;
@@ -514,7 +542,7 @@ FuncRParams
     $$ = params;
   }
   | FuncRParams ',' Exp {
-      // 多个参数
+      // Multiple parameter
       auto params = static_cast<FuncRParamsAST*>($1);
       params->params.push_back(std::unique_ptr<BaseAST>($3));
       $$ = params;
