@@ -190,7 +190,19 @@ The compiler then generates RISC-V assembly from this IR.
 
 ## Key Features
 
-### *Register Allocation
+### Register Allocation
+The work centers around optimizing code performance via efficient register and memory allocation strategies.
+
+In register allocation:
+- Firstly, different types of values such as integers, pointers, and aggregates are identified. 
+- For frequently used values and those involved in immediate operations, we strive to allocate them to registers.
+- Temporary registers are managed systematically to hold intermediate results.
+
+In memory allocation:
+- stack space is reserved for local variables and function parameters, with the amount allocated depending on the variable's nature, like reserving more for arrays.
+
+This way, we balance the use of registers and memory to enhance overall code execution efficiency.
+
 
 ## Testing
 
