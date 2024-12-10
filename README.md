@@ -28,18 +28,23 @@ The difference from C language is that it does not have header files, does not s
 - For Windows
 ```bash
 load -i csc3002-dev-environment.tar at the command line
-docker run it -- rm -- platform Linux/amd64-v Local-file-directory:/workspace - w/workspace csc3002 dev image bash
+docker run it -- rm -- platform Linux/amd64-v {Local-file-directory}:/workspace - w/workspace csc3002 dev image bash
 ```
 - For Linux or Macos
 ```bash
 load < csc3002-dev-environment.tar at the command line
-docker run it -- rm -- platform Linux/amd64-v Local-file-directory:/workspace - w/workspace csc3002 dev image bash
+docker run it -- rm -- platform Linux/amd64-v {Local-file-directory}:/workspace - w/workspace csc3002 dev image bash
+```
+##### The second method to enter Docker (Recommended!)
+```bash
+docker pull asnly1013/csc3002-dev-image:latest
+docker run it -- rm -- platform Linux/amd64-v {Local-file-directory}:/workspace - w/workspace csc3002 dev image bash
 ```
 
-##### Another way to setup docker (may encounter network issues)
+##### The third way to setup docker (may encounter network issues)
 ```bash
 docker build -t csc3002-dev-image .
-docker run -it --rm --platform linux/amd64 -v Local-file-directory:/workspace -w /workspace csc3002-dev-image bash
+docker run -it --rm --platform linux/amd64 -v {Local-file-directory}:/workspace -w /workspace csc3002-dev-image bash
 ```
 ### How to use our Compiler
 

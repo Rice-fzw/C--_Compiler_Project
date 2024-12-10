@@ -359,7 +359,7 @@ public:
     mySymboltable newtbl;
     scopeManager.insertScope(newtbl);
     fun_nam[ident] = 1;
-    auto u = scopeManager.lookupSymbol("k");
+    auto u = scopeManager.lookupSymbol(ident);
     if (u.has_value()) {
         fl = 1;
         std::cout << "Error! The function name " + ident + " and variable name are duplicated\n";
@@ -2349,6 +2349,15 @@ public:
         
         mySymboltable* topscope = scopeManager.top();
         topscope->insertSymbol(var_ptr, "array", "1", var_nam);
+        topscope->insertSymbol(ident, "check", "3", var_nam);
+        if (fun_nam[ident]){
+            fl=1;
+            std::cout << "Error! The const array's name " << ident << " and function name are duplicated\n";
+        }
+        if (ident == "main"){
+            fl=1;
+            std::cout << "Error! The const array's name cannot be 'main'\n";
+        }
 
      //   if(has_init) {
             list_nam.push_back(var_ptr);
@@ -2378,6 +2387,15 @@ public:
         
         mySymboltable* topscope = scopeManager.top();
         topscope->insertSymbol(var_ptr, "array", "1", var_nam);
+        topscope->insertSymbol(ident, "check", "3", var_nam);
+        if (fun_nam[ident]){
+            fl=1;
+            std::cout << "Error! The const array's name " << ident << " and function name are duplicated\n";
+        }
+        if (ident == "main"){
+            fl=1;
+            std::cout << "Error! The const array's name cannot be 'main'\n";
+        }
 
       //  if(has_init) {
             list_nam.push_back(var_ptr);
@@ -2441,6 +2459,15 @@ public:
         
         mySymboltable* topscope = scopeManager.top();
         topscope->insertSymbol(var_ptr, "array", "1", var_nam);
+        topscope->insertSymbol(ident, "check", "3", var_nam);
+        if (fun_nam[ident]){
+            fl=1;
+            std::cout << "Error! The array's name " << ident << " and function name are duplicated\n";
+        }
+        if (ident == "main"){
+            fl=1;
+            std::cout << "Error! The array's name cannot be 'main'\n";
+        }
 
         if(has_init) {
             if(init_val){
@@ -2486,6 +2513,15 @@ public:
         
         mySymboltable* topscope = scopeManager.top();
         topscope->insertSymbol(var_ptr, "array", "1", var_nam);
+        topscope->insertSymbol(ident, "check", "3", var_nam);
+        if (fun_nam[ident]){
+            fl=1;
+            std::cout << "Error! The array's name " << ident << " and function name are duplicated\n";
+        }
+        if (ident == "main"){
+            fl=1;
+            std::cout << "Error! The array's name cannot be 'main'\n";
+        }
 
         if(has_init) {
             list_nam.push_back(var_ptr);

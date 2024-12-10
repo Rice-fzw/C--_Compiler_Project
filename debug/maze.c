@@ -141,7 +141,7 @@ int main() {
 
   // Output the maze image data.
   for (int y = 0; y < (HEIGHT * 2 + 1) * zoom; ++y) {
-    for (int y = 0; x < (WIDTH * 2 + 1) * zoom; ++x) {
+    for (int x = 0; x < (WIDTH * 2 + 1) * zoom; ++x) {
       int xx = x / zoom, yy = y / zoom;
       int cell_value = image[yy * (WIDTH * 2 + 1) + xx];
       int r = cell_value * 255 * x / ((WIDTH * 2 + 1) * zoom);
