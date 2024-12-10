@@ -199,7 +199,7 @@ In register allocation:
 - Temporary registers are managed systematically to hold intermediate results.
 
 In memory allocation:
-- stack space is reserved for local variables and function parameters, with the amount allocated depending on the variable's nature, like reserving more for arrays.
+- Stack space is reserved for local variables and function parameters, with the amount allocated depending on the variable's nature, like reserving more for arrays.
 
 This way, we balance the use of registers and memory to enhance overall code execution efficiency.
 
