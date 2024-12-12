@@ -9,5 +9,6 @@ int main() {
     if (x > 3) f = 3;
     const int f = 6;
     const int main[2] = {1, 2};
+    int h = g(); ++7;
     return f(a[1] + x + f);
 }

@@ -21,6 +21,8 @@ static std::map<std::string, std::string> fun_type;
 static std::map<std::string, int> var_num;
 static std::vector<std::string> fun_var;
 static std::vector<int> while_stack;
+static std::vector<int> for_stack;
+static std::vector<int> for_or_whi;
 static std::vector<std::string> list_nam; 
 static std::vector<int> list_length; 
 static std::map<std::string, bool> fun_nam;
@@ -149,7 +151,16 @@ public:
         fun_type["putarray"] = "void";
         fun_type["starttime"] = "void";
         fun_type["stoptime"] = "void";
-
+        fun_type["puts"] = "void";
+        fun_nam["puts"] = 1;
+        fun_nam["getint"] = 1;
+        fun_nam["getch"] = 1;
+        fun_nam["getarray"] = 1;
+        fun_nam["putint"] = 1;
+        fun_nam["putch"] = 1;
+        fun_nam["putarray"] = 1;
+        fun_nam["starttime"] = 1;
+        fun_nam["stoptime"] = 1;
 //        Deal with declarations first
         if(!decls.empty()){
             mySymboltable newtbl;
@@ -445,7 +456,7 @@ public:
         // obatain the value of variable
         auto varpit = scopeManager.lookupSymbol(ident);
         if (varpit == std::nullopt){
-          if(!ervar[ident]) std::cout << "Error: variable " << ident << " is not defined.\n";
+          if(!ervar[ident]) std::cout << "Error! variable " << ident << " is not defined.\n";
           fl = 1; ervar[ident] = 1;
           return "%0";
         }
@@ -649,15 +660,29 @@ public:
 
             case StmtType::Break: {
                 // Jump to the end tag of the current loop
-                int while_nb=while_stack.back();
-                IR += "  jump %while_end_" + std::to_string(while_nb - 1) + "\n";
+                int chkk = for_or_whi.back();
+                if (chkk == 1){
+                    int while_nb=while_stack.back();
+                    IR += "  jump %while_end_" + std::to_string(while_nb - 1) + "\n";
+                }
+                else{
+                    int for_nb=for_stack.back();
+                    IR += "  jump %for_end_" + std::to_string(for_nb - 1) + "\n";
+                }
                 return "break";
             }
 
             case StmtType::Continue: {
                 // Jump to the conditional judgment label of the current loop
-                int while_nb=while_stack.back();
-                IR += "  jump %while_entry_" + std::to_string(while_nb - 1) + "\n";
+                int chkk = for_or_whi.back();
+                if (chkk == 1){
+                    int while_nb=while_stack.back();
+                    IR += "  jump %while_entry_" + std::to_string(while_nb - 1) + "\n";
+                }
+                else{
+                    int for_nb=for_stack.back();
+                    IR += "  jump %for_entry_" + std::to_string(for_nb - 1) + "\n";
+                }
                 return "cont";
             }
             
@@ -796,6 +821,7 @@ public:
 
     std::string dumpIR(int& tempVarCounter) const override {
         // Generate unique labels for the loop
+        for_or_whi.push_back(1);
         std::string entry_label = "%while_entry_" + std::to_string(while_num);
         std::string body_label = "%while_body_" + std::to_string(while_num);
         std::string end_label = "%while_end_" + std::to_string(while_num++);
@@ -819,6 +845,7 @@ public:
         // End block
         IR += end_label + ":\n";
         while_stack.pop_back();
+        for_or_whi.pop_back();
         return "";
     }
 };
@@ -881,7 +908,8 @@ public:
         std::string body_label = "%for_body_" + std::to_string(while_num);
         std::string update_label = "%for_update_" + std::to_string(while_num);
         std::string end_label = "%for_end_" + std::to_string(while_num++);
-        while_stack.push_back(while_num);
+        for_or_whi.push_back(0);
+        for_stack.push_back(while_num);
         std::string last_result;
         mySymboltable newtbl;
         scopeManager.insertScope(newtbl);
@@ -916,7 +944,8 @@ public:
         
         // End block
         IR += end_label + ":\n";
-        while_stack.pop_back();
+        for_stack.pop_back();
+        for_or_whi.pop_back();
         scopeManager.exitScope();
         return "";
     }
@@ -1105,7 +1134,7 @@ class UnaryExpAST : public BaseAST {
                   }
                   
                   if (bel.find(expr_ir) == bel.end()) {
-                      std::cerr << "Error: Self increasing and decreasing operations can only be used for variables" << std::endl;
+                      std::cerr << "Error! Self increasing and decreasing operations can only be used for variables" << std::endl;
                       fl = 1;
                       return "";
                   }
@@ -1153,7 +1182,7 @@ class UnaryExpAST : public BaseAST {
                   }
                   */
                  if (bel.find(expr_ir) == bel.end()) {
-                      std::cerr << "Error: Self increasing and decreasing operations can only be used for variables" << std::endl;
+                      std::cerr << "Error! Self increasing and decreasing operations can only be used for variables" << std::endl;
                       fl = 1;
                       return "";
                   }
@@ -1178,6 +1207,10 @@ class UnaryExpAST : public BaseAST {
           case UnaryExpType::Function: {
               std::string mid_var = "";
               std::string temp_var = "%" + std::to_string(tempVarCounter);
+              if (!fun_nam[ident]){
+                std::cout<<"Error! The function name " + ident + " is undefined\n";
+                fl = 1;
+              }
               if (rparams.hasValue())
                 mid_var = rparams.getValue()->dumpIR(tempVarCounter);
               if(fun_type[ident] == "int" ){
@@ -2112,7 +2145,7 @@ public:
       //  std::cout<<"hqweqe\n";
         std::string ident = list_nam.back();
         std::string arr_ptr = ident + "_" + std::to_string(var_num[list_nam.back()]-1);  // Get array base address
-      /*  if(is_const) {
+        if(is_const) {
             std::vector <int> ele;
             // Constant array initialization must use constant expressions
             if(elements.empty()) {
@@ -2143,7 +2176,7 @@ public:
             mySymboltable* topscope = scopeManager.top();
             topscope->insertSymbol(ident, "array", "2", arr_ptr, ele);
             return std::to_string(elements.size());
-        } else {*/
+        } else {
           // For variable arrays, generate multiple store instructions
           //  int length = stoi(elements[0]->dumpIR(tempVarCounter));
           //  std::string arr_ptr = list_nam.back() + "_" + std::to_string(var_num[list_nam.back()]-1);;  // Get array base address
@@ -2165,11 +2198,11 @@ public:
           //  mySymboltable* topscope = scopeManager.top();
           //  topscope->insertSymbol(ident, "array", "2", arr_ptr);
             return std::to_string(elements.size());
-      //  }
+        }
     }
 
     virtual int Calc() const override {
-        if(false) {
+        if(is_const) {
             std::string ident = list_nam.back();
             std::string arr_ptr = ident + "_" + std::to_string(var_num[list_nam.back()]-1);  // Get array base address
             std::vector <int> ele;
@@ -2247,7 +2280,7 @@ public:
         
           // Generate IR code for array access
           if (array_sym == std::nullopt){
-            if(!erary[ident]) std::cout << "Error: array " << ident << " is not defined.\n";
+            if(!erary[ident]) std::cout << "Error! array " << ident << " is not defined.\n";
             fl = 1; erary[ident] = 1;
             return "%0";
           }

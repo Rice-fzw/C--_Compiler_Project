@@ -179,10 +179,10 @@ ConstInitVal
   }
   | '{' '}' {
     std::vector<std::unique_ptr<BaseAST>> empty_elements;
-    $$ = new ArrayInitValAST(std::move(empty_elements), true);
+    $$ = new ArrayInitValAST(std::move(empty_elements), false);
   }
   | '{' ConstExpList '}' {
-    $$ = new ArrayInitValAST(std::move(*($2)), true);
+    $$ = new ArrayInitValAST(std::move(*($2)), false);
     delete $2;
   }
   ;

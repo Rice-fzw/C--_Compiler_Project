@@ -33,6 +33,7 @@ struct Memory{
         param_offset.clear();
     }
     void F(){//calculate the f_inal and used_mem
+        c_all*=4;
         f_inal = ((l_ocal+r_a+c_all + 15) / 16) * 16;
         used_mem = r_a? f_inal-4: f_inal;
     }
@@ -182,7 +183,6 @@ void Visit(const koopa_raw_function_t &func){
         else{// operand must be a symbol with %lo/ %pcrel_lo/ %tprel_lo modifier or an integer in the range [-2048, 2047]
             std::string reg = New_reg();
             std::cout << "  " << "li " << reg + ", " << -fun_mem.f_inal << std::endl;
-            std::cout << "  " << "add " << reg + ", " << reg << ", sp" << std::endl;
             std::cout << "  " << "add " <<  "sp, " << "sp, " << reg << std::endl;
             temp_reg--;
         }
@@ -290,7 +290,6 @@ void Visit(const koopa_raw_return_t &ret){
         else{// operand must be a symbol with %lo/%pcrel_lo/%tprel_lo modifier or an integer in the range [-2048, 2047]
             std::string reg = New_reg();
             std::cout << "  " << "li " << reg + ", " << fun_mem.f_inal << std::endl;
-            std::cout << "  " << "add " << reg + ", " << reg << ", sp" << std::endl;
             std::cout << "  " << "add " <<  "sp, " << "sp, " << reg << std::endl;
             temp_reg--;
         }
