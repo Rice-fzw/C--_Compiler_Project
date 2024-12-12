@@ -56,7 +56,7 @@ int fl = 0;
         for (const auto& [name, symbol] : Symboltable) {
             cout << "  Name: " << name << ", Type: " << symbol->type
                 << ", Value: " << symbol->value
-                << ", koopa: " << symbol->address
+                << ", address: " << symbol->address
                 << endl;
         }
     }

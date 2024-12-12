@@ -173,7 +173,7 @@ public:
         // Deal with function defs
         for (const auto& func : funcdefs) {
             fl_void = 0;
-            func->dumpIR(tempVarCounter);
+            if(func) func->dumpIR(tempVarCounter);
         //    std::cout<<glb_IR+IR;
         }
         if (!fl) std::cout << glb_IR << IR;
@@ -326,10 +326,11 @@ public:
   std::string ident;
   Option<std::unique_ptr<FuncFParamListAST>> params;  
   std::unique_ptr<BaseAST> block;
+  bool is_pre;
 
-  // Constructor for function without parameters
-  FuncDefAST(std::unique_ptr<BaseAST> func_type, std::string ident, std::unique_ptr<BaseAST> block)
-      : ident(ident), block(std::move(block)) {
+  // Constructor for function without p arameters
+  FuncDefAST(std::unique_ptr<BaseAST> func_type, std::string ident, std::unique_ptr<BaseAST> block, bool is_pre = false)
+      : ident(ident), block(std::move(block)), is_pre(is_pre) {
     // Convert BType to FuncType if needed
     if (auto* btype = dynamic_cast<std::string*>(func_type.get())) {
       this->func_type = std::unique_ptr<BaseAST>(new FuncTypeAST(*btype));
@@ -340,10 +341,11 @@ public:
 
   // Constructor for function with parameters
   FuncDefAST(std::unique_ptr<BaseAST> func_type, std::string ident, 
-             std::unique_ptr<FuncFParamListAST> params, std::unique_ptr<BaseAST> block)
+             std::unique_ptr<FuncFParamListAST> params, std::unique_ptr<BaseAST> block, bool is_pre = false)
       : ident(ident), 
         params(Option<std::unique_ptr<FuncFParamListAST>>(std::move(params))), 
-        block(std::move(block)) {
+        block(std::move(block)),
+        is_pre(is_pre) {
     // Convert BType to FuncType if needed
     if (auto* btype = dynamic_cast<std::string*>(func_type.get())) {
       this->func_type = std::unique_ptr<BaseAST>(new FuncTypeAST(*btype));
@@ -367,6 +369,7 @@ public:
   }
 
   std::string dumpIR(int& tempVarCounter) const override {
+    if(!is_pre) return "";
     mySymboltable newtbl;
     scopeManager.insertScope(newtbl);
     fun_nam[ident] = 1;
@@ -380,7 +383,8 @@ public:
         IR += params.getValue()->dumpIR(tempVarCounter);
     }
     IR += ")";
-    std::string return_type = func_type->dumpIR(tempVarCounter);
+    std::string return_type = "";
+    if (func_type) return_type = func_type->dumpIR(tempVarCounter);
     fun_type[ident] = return_type;
     if (return_type == "int") {
       IR += ": i32";

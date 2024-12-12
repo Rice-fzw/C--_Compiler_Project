@@ -273,44 +273,44 @@ InitValList
 
 FuncDef
   : BType IDENT '(' ')' Block {
-    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST(*($1))), *$2, std::unique_ptr<BaseAST>($5));
+    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST(*($1))), *$2, std::unique_ptr<BaseAST>($5), true);
   }
   | BType IDENT '(' ')' Block ';' {
-  $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST(*($1))), *$2, std::unique_ptr<BaseAST>($5));
+  $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST(*($1))), *$2, std::unique_ptr<BaseAST>($5), true);
   }
   | BType IDENT '(' FuncFParams ')' Block {
-    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST(*($1))), *$2, std::unique_ptr<FuncFParamListAST>(static_cast<FuncFParamListAST*>($4)), std::unique_ptr<BaseAST>($6));
+    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST(*($1))), *$2, std::unique_ptr<FuncFParamListAST>(static_cast<FuncFParamListAST*>($4)), std::unique_ptr<BaseAST>($6), true);
   }
   | BType IDENT '(' FuncFParams ')' Block ';' {
-    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST(*($1))), *$2, std::unique_ptr<FuncFParamListAST>(static_cast<FuncFParamListAST*>($4)), std::unique_ptr<BaseAST>($6));
+    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST(*($1))), *$2, std::unique_ptr<FuncFParamListAST>(static_cast<FuncFParamListAST*>($4)), std::unique_ptr<BaseAST>($6), true);
   }
   | VOID IDENT '(' ')' Block {
-    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST("void")), *$2, std::unique_ptr<BaseAST>($5));
+    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST("void")), *$2, std::unique_ptr<BaseAST>($5), true);
   }
   | VOID IDENT '(' ')' Block ';' {
-    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST("void")), *$2, std::unique_ptr<BaseAST>($5));
+    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST("void")), *$2, std::unique_ptr<BaseAST>($5), true);
   }
   | VOID IDENT '(' FuncFParams ')' Block {
-    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST("void")), *$2, std::unique_ptr<FuncFParamListAST>(static_cast<FuncFParamListAST*>($4)), std::unique_ptr<BaseAST>($6));
+    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST("void")), *$2, std::unique_ptr<FuncFParamListAST>(static_cast<FuncFParamListAST*>($4)), std::unique_ptr<BaseAST>($6), true);
   }
   | VOID IDENT '(' FuncFParams ')' Block ';' {
-    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST("void")), *$2, std::unique_ptr<FuncFParamListAST>(static_cast<FuncFParamListAST*>($4)), std::unique_ptr<BaseAST>($6));
+    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST("void")), *$2, std::unique_ptr<FuncFParamListAST>(static_cast<FuncFParamListAST*>($4)), std::unique_ptr<BaseAST>($6), true);
   }
   | BType IDENT '(' ')' ';' {
     auto empty_block = new BlockAST();
-    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST(*($1))), *$2, std::unique_ptr<BaseAST>(empty_block));
+    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST(*($1))), *$2, std::unique_ptr<BaseAST>(empty_block), false);
   }
   | BType IDENT '(' FuncFParams ')' ';' {
     auto empty_block = new BlockAST();
-    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST(*($1))), *$2, std::unique_ptr<FuncFParamListAST>(static_cast<FuncFParamListAST*>($4)), std::unique_ptr<BaseAST>(empty_block));
+    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST(*($1))), *$2, std::unique_ptr<FuncFParamListAST>(static_cast<FuncFParamListAST*>($4)), std::unique_ptr<BaseAST>(empty_block), false);
   }
   | VOID IDENT '(' ')' ';' {
     auto empty_block = new BlockAST();
-    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST("void")), *$2, std::unique_ptr<BaseAST>(empty_block));
+    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST("void")), *$2, std::unique_ptr<BaseAST>(empty_block), false);
   }
   | VOID IDENT '(' FuncFParams ')' ';' {
     auto empty_block = new BlockAST();
-    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST("void")), *$2, std::unique_ptr<FuncFParamListAST>(static_cast<FuncFParamListAST*>($4)), std::unique_ptr<BaseAST>(empty_block));
+    $$ = new FuncDefAST(std::unique_ptr<BaseAST>(new FuncTypeAST("void")), *$2, std::unique_ptr<FuncFParamListAST>(static_cast<FuncFParamListAST*>($4)), std::unique_ptr<BaseAST>(empty_block), false);
   }
   ;
 
