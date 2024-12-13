@@ -1,6 +1,3 @@
-// A maze generator.
-// Author: MaxXing.
-
 // Maze configurations.
 const int WIDTH = 100, HEIGHT = 100;
 
@@ -122,7 +119,10 @@ void render() {
 }
 
 int main() {
+//  puts("-----\n");
+  puts("Input a random number as seed:\n");
   seed = getint(); // Set the random seed.
+  puts("Input a number as the zoom factor for rendering:\n");
   int zoom = getint(); // Zoom factor for rendering.
   starttime();
 

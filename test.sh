@@ -8,7 +8,7 @@ if [ -f "./${filename}.S" ]; then
     clang ${filename}.S -c -o ${filename}.o -target riscv32-unknown-linux-elf -march=rv32im -mabi=ilp32
     ld.lld ${filename}.o -L/workspace/opt/lib/riscv32 -lc-- -o ${filename}
     qemu-riscv32-static ${filename}
-    echo $?
+#    echo $?
 fi
 rm -rf ${filename}.S
 rm -rf ${filename}.o

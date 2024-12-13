@@ -36,14 +36,14 @@ int f() {
 int main() {
   int ssum = 0;
   int lis[20] = {(f() || f()) & 3, x + y * 2, sum(1, 4 * 2 - f() + t() || 0, 3, f(), 5, 6 ^ 4, f(), 8)};
-  x = sum(1, 2, 3, f0[4], 5, !6, 7, 8);
+  x = sum(1, 2, 3, f0[4], sum(1, 2, 3, g0[3], 6, 7, 8 >> 1, 8 ^ 23), !6, 7, 8);
   y = sum2(1, 2, 3, g0[4], 5, 6, 7, x, 9, 10 % 3, 11, 12, sum(1, 2, e0[2], 4, 5, aa + 6, 6, 8), 14, 15, 16);
   for(int j = 1; j<=10; ++j) {
     int a = 1, b = 2;
     {
-      ssum = ssum + (f() || f()) & 3 + 6 / aa | 13 / sum(1, 4 * 2 - f() + t(), 3, f(), 5, aa + 6, f(), 8);
-      f0[j/2] = ssum;
-      if (a == 1) {
+      ssum = ssum + (f() || f()) & 3 + 6 / aa | 13 * j / sum(1, 4 * 2 - f() + t(), 3, f(), 5, aa + 6, f(), 8);
+      f0[j/2] = ssum << 1 /6 + 8 ^ j;
+      if (a ==1) {
         for (;a < b;) {
           for(;x < y; x += 2);
           while (a < b || b - 1 == 0) {
@@ -58,13 +58,14 @@ int main() {
           b = 1;
           a = a + 1;
           if (3) continue;
+          a = a - 1;
         }
       } else if (b == 6) {
         break;
       }
       int b = 6;
     //  if (b == 6) return 8 * (10 || b);
-    //  else while (0);
+    /*  else while (0); */
     }
     putint(f0[j/2]);puts("\n");
   }

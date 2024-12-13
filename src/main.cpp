@@ -32,7 +32,7 @@ int main(int argc, const char *argv[]) {
 
   int tempVarCounter = 0;
 
-  if (string(mode) == "-koopa") {
+  if (string(mode) == "-IR") {
     stringstream ss;
     streambuf* cout_buf = cout.rdbuf();
     cout.rdbuf(ss.rdbuf());

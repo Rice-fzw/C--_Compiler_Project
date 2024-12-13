@@ -1,6 +1,8 @@
 # C-- Compiler
 
-A compiler that translates C-- to RISC-V assembly through intermexdiate output IR.
+A compiler that translates C-- to RISC-V assembly through intermexdiate output IR, and ultimately generate executable files.
+The handwriiten code section is located in src and debug.
+The opt folder is the header file referenced online, and the build folder is our compiler.
 
 ## Introduction
 

@@ -49,7 +49,7 @@ void print(){
         x = x + 1;
     }
     int y = 0;
-    putint((COL<<1));
+//    putint((COL<<1));
 //    putch(CHR_ENTER);
 }
 /*初始化游戏角色*/
@@ -118,8 +118,8 @@ int main()
             many = willy; // 传递移动后的纵坐标
             print();
         }else if(Map[index]==1){//墙
-            puts("Can not enter into the wall. Try again.");
-            putch(CHR_ENTER);
+            puts("Can not enter into the wall. Try again.\n");
+        //    putch(CHR_ENTER);
         }else if(Map[index]==3){// 箱子
             int bindex=get_index(bx,by);
             if(Map[bindex]==2){//goal
